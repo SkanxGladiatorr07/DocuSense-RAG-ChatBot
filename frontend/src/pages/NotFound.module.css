@@ -1,0 +1,35 @@
+.container {
+  min-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 1rem;
+  padding: 2rem;
+}
+
+.code {
+  font-size: 5rem;
+  font-weight: 900;
+  color: var(--color-border);
+  line-height: 1;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.message {
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+  max-width: 380px;
+}
+
+.homeLink {
+  margin-top: 0.5rem;
+  font-weight: 600;
+  color: var(--color-primary);
+}
