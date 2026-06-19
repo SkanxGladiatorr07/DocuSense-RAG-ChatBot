@@ -1,0 +1,30 @@
+{
+  "name": "docusense-rag-backend",
+  "version": "1.0.0",
+  "description": "RAG ChatBot backend for company document querying",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "lint": "eslint src/**/*.js"
+  },
+  "keywords": [
+    "rag",
+    "chatbot",
+    "langchain",
+    "openai",
+    "express",
+    "mern"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "morgan": "^1.10.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}
