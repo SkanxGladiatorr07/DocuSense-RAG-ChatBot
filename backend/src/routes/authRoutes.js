@@ -1,12 +1,21 @@
 const express = require('express');
-const { register, login } = require('../controllers/authController');
+const { register, login, getMe } = require('../controllers/authController');
+const authenticate = require('../middleware/authenticate');
+const authorise = require('../middleware/authorise');
 
 const router = express.Router();
 
-// Route: POST /api/v1/auth/register
+// ── Public routes ─────────────────────────────────────────────────────────────
 router.post('/register', register);
-
-// Route: POST /api/v1/auth/login
 router.post('/login', login);
 
+// ── Protected routes (require valid JWT) ──────────────────────────────────────
+router.get('/me', authenticate, getMe);
+
+// ── Admin-only route example ──────────────────────────────────────────────────
+router.get('/admin-check', authenticate, authorise('admin'), (req, res) => {
+  res.json({ success: true, message: `Welcome, Admin ${req.user.name}!` });
+});
+
 module.exports = router;
+

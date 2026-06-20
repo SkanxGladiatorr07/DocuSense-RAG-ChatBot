@@ -122,4 +122,18 @@ const login = async (req, res, next) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-module.exports = { register, login };
+/**
+ * @desc    Get currently authenticated user's profile
+ * @route   GET /api/v1/auth/me
+ * @access  Private (authenticate middleware required)
+ */
+const getMe = (req, res) => {
+  // req.user is already populated by the authenticate middleware
+  return ApiResponse.success(res, 200, 'User profile fetched successfully', {
+    user: sanitiseUser(req.user),
+  });
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+module.exports = { register, login, getMe };
