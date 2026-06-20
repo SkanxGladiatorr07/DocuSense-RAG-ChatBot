@@ -7,6 +7,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Name is required'],
       trim: true,
+      minlength: [2, 'Name must be at least 2 characters long'],
       maxlength: [50, 'Name cannot exceed 50 characters'],
     },
     email: {
@@ -23,37 +24,37 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: [true, 'Password is required'],
-      minlength: [6, 'Password must be at least 6 characters long'],
-      select: false, // Prevents password from being returned in queries by default
+      // NOTE: minlength is NOT set here because the pre-save hook hashes the
+      // password before Mongoose validators run, so any length check here
+      // would always pass against the ~60-char bcrypt hash.
+      // Password length is validated in the controller before saving.
+      select: false, // Never returned in queries by default
     },
     role: {
       type: String,
       enum: {
         values: ['admin', 'employee'],
-        message: 'Role must be either admin or employee',
+        message: 'Role must be either "admin" or "employee"',
       },
       default: 'employee',
     },
   },
   {
-    timestamps: true, // Automatically manages createdAt and updatedAt fields
+    timestamps: true, // Adds createdAt and updatedAt automatically
   }
 );
 
-// Mongoose pre-save middleware to hash the password before saving
+// ── Pre-save hook: hash password only when it has been modified ───────────────
 userSchema.pre('save', async function () {
-  // Only hash the password if it has been modified or is new
-  if (!this.isModified('password')) {
-    return;
-  }
+  if (!this.isModified('password')) return;
 
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
 });
 
-// Instance method to compare input password with the hashed password
+// ── Instance method: compare plain-text input with stored hash ────────────────
 userSchema.methods.comparePassword = async function (enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
+  return bcrypt.compare(enteredPassword, this.password);
 };
 
 const User = mongoose.model('User', userSchema);

@@ -12,7 +12,7 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const _required = [
-  // Add required keys here as the project grows, e.g. 'MONGO_URI', 'OPENAI_API_KEY'
+  'JWT_SECRET',
 ];
 
 const _missing = _required.filter((key) => !process.env[key]);
@@ -31,6 +31,8 @@ const env = {
   corsOrigin: process.env.CORS_ORIGIN
     ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
     : ['http://localhost:3000'],
+  jwtSecret: process.env.JWT_SECRET,
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   isDev: (process.env.NODE_ENV || 'development') === 'development',
   isProd: process.env.NODE_ENV === 'production',
 };
