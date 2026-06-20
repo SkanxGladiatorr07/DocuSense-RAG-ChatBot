@@ -9,4 +9,7 @@
  *   module.exports.Chat     = require('./Chat');
  */
 
-module.exports = {};
+module.exports = {
+  User: require('./User'),
+};
+
