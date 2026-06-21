@@ -26,38 +26,34 @@
 
 const logger = require('../utils/logger');
 const AppError = require('../utils/AppError');
-const ApiError = require('../utils/ApiError'); // legacy alias — kept for back-compat
+const ApiError = require('../utils/ApiError');                     // legacy alias
+const { errorResponse } = require('../utils/ApiResponse');
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 /**
- * Extract a human-readable list of field-level Mongoose validation messages.
+ * Extract field-level Mongoose validation messages into a plain object.
  * @param {import('mongoose').Error.ValidationError} err
- * @returns {string[]}
+ * @returns {{ fields: Record<string, string> }}
  */
-const extractMongooseValidationErrors = (err) =>
-  Object.values(err.errors).map((e) => e.message);
+const extractMongooseValidationErrors = (err) => ({
+  fields: Object.fromEntries(
+    Object.entries(err.errors).map(([field, e]) => [field, e.message])
+  ),
+});
 
 /**
- * Build the consistent error response envelope.
+ * Thin wrapper: delegates to the canonical errorResponse() utility so that
+ * every error in the app — middleware or controller — shares the same shape:
+ *   { success: false, message, error: {} }
+ *
  * @param {import('express').Response} res
- * @param {import('express').Request}  req
- * @param {number}   statusCode
- * @param {string}   message
- * @param {string[]} [errors=[]]
+ * @param {number}      statusCode
+ * @param {string}      message
+ * @param {object|null} [error=null]
  */
-const sendError = (res, req, statusCode, message, errors = []) => {
-  const payload = {
-    success: false,
-    message,
-    ...(errors.length > 0 && { errors }),
-    timestamp: new Date().toISOString(),
-    path: req.originalUrl,
-  };
-
-  // Never expose stack traces to clients
-  return res.status(statusCode).json(payload);
-};
+const sendError = (res, statusCode, message, error = null) =>
+  errorResponse(res, statusCode, message, error);
 
 // ── Logger helper ─────────────────────────────────────────────────────────────
 
@@ -89,66 +85,58 @@ const errorHandler = (err, req, res, next) => {
 
   // ── 1. Our own operational errors (AppError or legacy ApiError) ─────────────
   if (err instanceof AppError || err instanceof ApiError) {
-    return sendError(
-      res,
-      req,
-      err.statusCode,
-      err.message,
-      err.errors || []
-    );
+    const errDetail = err.errors && err.errors.length > 0
+      ? { details: err.errors }
+      : null;
+    return sendError(res, err.statusCode, err.message, errDetail);
   }
 
   // ── 2. JWT Errors ───────────────────────────────────────────────────────────
   // jsonwebtoken throws named error classes; handle all three variants.
 
   if (err.name === 'TokenExpiredError') {
-    return sendError(res, req, 401, 'Session expired. Please log in again.');
+    return sendError(res, 401, 'Session expired. Please log in again.');
   }
 
   if (err.name === 'JsonWebTokenError') {
-    return sendError(res, req, 401, 'Invalid token. Please log in again.');
+    return sendError(res, 401, 'Invalid token. Please log in again.');
   }
 
   if (err.name === 'NotBeforeError') {
-    return sendError(res, req, 401, 'Token not yet active. Please log in again.');
+    return sendError(res, 401, 'Token not yet active. Please log in again.');
   }
 
   // ── 3. Mongoose Validation Error ─────────────────────────────────────────────
   if (err.name === 'ValidationError') {
-    const errors = extractMongooseValidationErrors(err);
-    return sendError(res, req, 400, 'Validation failed.', errors);
+    return sendError(res, 400, 'Validation failed.', extractMongooseValidationErrors(err));
   }
 
   // ── 4. Mongoose CastError (e.g. invalid ObjectId) ────────────────────────────
   if (err.name === 'CastError') {
-    return sendError(
-      res,
-      req,
-      400,
-      `Invalid value '${err.value}' for field '${err.path}'.`
-    );
+    return sendError(res, 400, `Invalid value for field '${err.path}'.`, {
+      field: err.path,
+      value: String(err.value),
+    });
   }
 
   // ── 5. Mongoose Duplicate Key Error ──────────────────────────────────────────
   if (err.code === 11000) {
     const field = Object.keys(err.keyValue || {})[0] || 'field';
     const value = err.keyValue?.[field] || '';
-    return sendError(
-      res,
-      req,
-      409,
-      `'${value}' is already registered for '${field}'. Please use a different value.`
-    );
+    return sendError(res, 409, `'${value}' is already taken for '${field}'.`, {
+      field,
+      value,
+    });
   }
 
   // ── 6. Request Payload Too Large ─────────────────────────────────────────────
   if (err.type === 'entity.too.large') {
-    return sendError(res, req, 413, 'Request payload is too large.');
+    return sendError(res, 413, 'Request payload is too large.');
   }
 
   // ── 7. Malformed JSON Body ────────────────────────────────────────────────────
   if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
-    return sendError(res, req, 400, 'Malformed JSON in request body.');
+    return sendError(res, 400, 'Malformed JSON in request body.');
   }
 
   // ── 8. Fallback — unexpected / unhandled error ────────────────────────────────
@@ -158,7 +146,7 @@ const errorHandler = (err, req, res, next) => {
       ? err.message || 'Internal Server Error'
       : 'Internal Server Error';
 
-  return sendError(res, req, 500, message);
+  return sendError(res, 500, message);
 };
 
 module.exports = errorHandler;
