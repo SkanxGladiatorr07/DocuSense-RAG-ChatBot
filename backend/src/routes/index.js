@@ -6,9 +6,10 @@
 
 const express = require('express');
 const healthRoutes = require('./healthRoutes');
-const authRoutes = require('./authRoutes');
+const authRoutes   = require('./authRoutes');
+const testRoutes   = require('./testRoutes');
 // Future route imports go here:
-// const chatRoutes    = require('./chatRoutes');
+// const chatRoutes     = require('./chatRoutes');
 // const documentRoutes = require('./documentRoutes');
 
 const router = express.Router();
@@ -19,8 +20,11 @@ router.use('/', healthRoutes);
 // ── Auth ──────────────────────────────────────────────────────────────────────
 router.use('/auth', authRoutes);
 
+// ── RBAC Test Routes (dev / integration testing) ──────────────────────────────
+router.use('/test', testRoutes);
+
 // ── Feature Routes (uncomment as you build them) ──────────────────────────────
-// router.use('/chat',     chatRoutes);
+// router.use('/chat',      chatRoutes);
 // router.use('/documents', documentRoutes);
 
 module.exports = router;
