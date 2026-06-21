@@ -1,39 +1,45 @@
 /**
  * @file config/env.js
  * @description Centralised environment configuration.
- *              Validates that required variables are present at startup
- *              so the app fails fast with a clear error rather than
- *              silently misbehaving at runtime.
+ *
+ *   Load order:
+ *   1. dotenv populates process.env from .env
+ *   2. validateEnv() checks all required vars — exits immediately on failure
+ *   3. The `env` object is built from validated process.env values and exported
+ *
+ *   Every other module imports from here instead of reading process.env directly,
+ *   so config is typed, defaulted, and validated in a single place.
  */
 
-const dotenv = require('dotenv');
+const dotenv   = require('dotenv');
+const validateEnv = require('./validateEnv');
 
-// Load .env file before anything else reads process.env
+// ── 1. Load .env ──────────────────────────────────────────────────────────────
 dotenv.config();
 
-const _required = [
-  'JWT_SECRET',
-];
+// ── 2. Validate — exits the process if any rule fails ────────────────────────
+validateEnv();
 
-const _missing = _required.filter((key) => !process.env[key]);
-
-if (_missing.length > 0) {
-  throw new Error(
-    `Missing required environment variables: ${_missing.join(', ')}\n` +
-      `Check .env.example for reference.`
-  );
-}
-
+// ── 3. Build and export typed config object ───────────────────────────────────
 const env = {
-  nodeEnv: process.env.NODE_ENV || 'development',
-  port: parseInt(process.env.PORT, 10) || 5000,
-  mongoUri: process.env.MONGO_URI || 'mongodb://localhost:27017/docusense',
+  // Server
+  nodeEnv : process.env.NODE_ENV  || 'development',
+  port    : parseInt(process.env.PORT, 10),
+
+  // Database
+  mongoUri: process.env.MONGO_URI,
+
+  // CORS — supports comma-separated list for multi-origin setups
   corsOrigin: process.env.CORS_ORIGIN
     ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
     : ['http://localhost:3000'],
-  jwtSecret: process.env.JWT_SECRET,
+
+  // Auth
+  jwtSecret   : process.env.JWT_SECRET,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
-  isDev: (process.env.NODE_ENV || 'development') === 'development',
+
+  // Convenience flags
+  isDev : (process.env.NODE_ENV || 'development') === 'development',
   isProd: process.env.NODE_ENV === 'production',
 };
 
