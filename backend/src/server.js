@@ -11,6 +11,16 @@ const logger = require('./utils/logger');
 const { connectDB, disconnectDB } = require('./config/db');
 const app = require('./app');
 
+// ── Process-level Safety Net ──────────────────────────────────────────────────
+// Must be registered before anything async starts so we catch synchronous
+// programming errors that escape all try/catch blocks.
+process.on('uncaughtException', (err) => {
+  logger.error('UNCAUGHT EXCEPTION — shutting down immediately:');
+  logger.error(err.stack || err.message);
+  // The process is in an undefined state; exit without attempting cleanup.
+  process.exit(1);
+});
+
 // ── Startup ───────────────────────────────────────────────────────────────────
 const start = async () => {
   try {
@@ -49,9 +59,10 @@ const start = async () => {
     process.on('SIGTERM', () => shutdown('SIGTERM'));
     process.on('SIGINT', () => shutdown('SIGINT'));
 
-    // Catch unhandled promise rejections (safety net)
+    // Catch unhandled promise rejections — graceful shutdown
     process.on('unhandledRejection', (reason) => {
-      logger.error('Unhandled Rejection:', reason);
+      logger.error('UNHANDLED REJECTION — initiating graceful shutdown:');
+      logger.error(reason instanceof Error ? reason.stack : reason);
       shutdown('unhandledRejection');
     });
   } catch (error) {

@@ -1,26 +1,25 @@
 /**
  * @file utils/ApiError.js
- * @description Custom error class that carries an HTTP status code.
- *              Thrown from services/controllers and caught by the global
- *              error-handling middleware in middleware/errorHandler.js
+ * @description Backward-compatible alias for AppError.
+ *
+ *   Kept so existing code that imports ApiError continues to work without
+ *   changes. New code should import AppError directly.
+ *
+ *   All AppError static factories (badRequest, unauthorized, notFound, etc.)
+ *   are available via AppError.  ApiError usage: `new ApiError(statusCode, message, errors)`.
  */
 
-class ApiError extends Error {
-  /**
-   * @param {number} statusCode  HTTP status code (e.g. 400, 404, 500)
-   * @param {string} message     Human-readable error message
-   * @param {Array}  [errors]    Optional validation error details
-   */
-  constructor(statusCode, message, errors = []) {
-    super(message);
-    this.name = 'ApiError';
-    this.statusCode = statusCode;
-    this.errors = errors;
+const AppError = require('./AppError');
 
-    // Maintain proper stack trace in V8
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, ApiError);
-    }
+/**
+ * @deprecated Use AppError instead.
+ *   `new ApiError(statusCode, msg, errors)` still works because ApiError
+ *   extends AppError and the constructor signature is identical.
+ */
+class ApiError extends AppError {
+  constructor(statusCode, message, errors = []) {
+    super(statusCode, message, errors, true);
+    this.name = 'ApiError';
   }
 }
 
