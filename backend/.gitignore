@@ -3,3 +3,7 @@ node_modules/
 dist/
 *.log
 .DS_Store
+
+# Uploaded files — keep the directory, ignore its contents
+uploads/*
+!uploads/.gitkeep
