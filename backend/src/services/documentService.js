@@ -8,8 +8,9 @@
  *
  *   Public API
  *   ──────────
- *   createDocument(payload)   → saves a new Document record, returns it
- *   getDocumentById(id, uid)  → fetches a single doc owned by the given user
+ *   createDocument(payload)          → saves a new Document record, returns it
+ *   getUserDocuments(userId, options) → paginated list of a user's documents
+ *   getDocumentById(id, uid)         → fetches a single doc owned by the user
  */
 
 const { Document } = require('../models');
@@ -79,6 +80,59 @@ const getDocumentById = async (documentId, userId) => {
   return doc;
 };
 
+// ── getUserDocuments ───────────────────────────────────────────────────────────
+
+/**
+ * Return a paginated list of documents owned by a user, sorted newest-first.
+ *
+ * Pagination uses a simple page/limit model:
+ *   page  – 1-based page number (default: 1, min: 1)
+ *   limit – results per page   (default: 10, min: 1, max: 100)
+ *
+ * @param {string} userId            - Authenticated user's ObjectId string
+ * @param {object} [options={}]
+ * @param {number} [options.page=1]  - Page number (1-based)
+ * @param {number} [options.limit=10]- Items per page
+ *
+ * @returns {Promise<{
+ *   documents : import('mongoose').Document[],
+ *   total     : number,
+ *   page      : number,
+ *   limit     : number,
+ *   totalPages: number
+ * }>}
+ * @throws {AppError} 400 for invalid pagination params
+ */
+const getUserDocuments = async (userId, { page = 1, limit = 10 } = {}) => {
+  // ── Sanitise & validate pagination params ──────────────────────────────────
+  const parsedPage  = Math.max(1, parseInt(page,  10) || 1);
+  const parsedLimit = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
+
+  if (isNaN(parsedPage) || isNaN(parsedLimit)) {
+    throw AppError.badRequest('Pagination params `page` and `limit` must be positive integers.');
+  }
+
+  const skip = (parsedPage - 1) * parsedLimit;
+
+  // ── Run count + find in parallel for efficiency ───────────────────────────
+  const [total, documents] = await Promise.all([
+    Document.countDocuments({ uploadedBy: userId }),
+    Document.find({ uploadedBy: userId })
+      .sort({ uploadDate: -1 })     // newest first
+      .skip(skip)
+      .limit(parsedLimit)
+      .lean(),                      // plain JS objects — faster for read-only responses
+  ]);
+
+  return {
+    documents,
+    total,
+    page      : parsedPage,
+    limit     : parsedLimit,
+    totalPages: Math.ceil(total / parsedLimit),
+  };
+};
+
 // ── Exports ────────────────────────────────────────────────────────────────────
 
-module.exports = { createDocument, getDocumentById };
+module.exports = { createDocument, getUserDocuments, getDocumentById };
