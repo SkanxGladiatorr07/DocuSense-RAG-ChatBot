@@ -4,38 +4,32 @@
  *
  *   Base path (mounted in routes/index.js): /api/v1/documents
  *
- *   ┌──────────────────────────────────────────────────────────────────────────┐
- *   │ Method │ Path           │ Middleware              │ Description           │
- *   ├────────┼────────────────┼─────────────────────────┼──────────────────────┤
- *   │ POST   │ /upload        │ authenticate, upload    │ Upload one document   │
- *   │ POST   │ /upload-many   │ authenticate, upload    │ Upload up to 10 docs  │
- *   └──────────────────────────────────────────────────────────────────────────┘
- *
- *   NOTE: `authenticate` is commented-out during initial scaffolding so the
- *   endpoints can be tested without a token.  Uncomment before shipping.
+ *   ┌─────────────────────────────────────────────────────────────────────────┐
+ *   │ Method │ Path      │ Middleware                    │ Description         │
+ *   ├────────┼───────────┼──────────────────────────────┼─────────────────────┤
+ *   │ POST   │ /upload   │ authenticate → uploadSingle   │ Upload one document  │
+ *   └─────────────────────────────────────────────────────────────────────────┘
  */
 
-const express  = require('express');
-const { uploadSingle, uploadArray } = require('../middleware/upload');
-const { uploadDocument, uploadDocuments } = require('../controllers/documentController');
-// const authenticate = require('../middleware/authenticate');
+const express      = require('express');
+const authenticate = require('../middleware/authenticate');
+const { uploadSingle } = require('../middleware/upload');
+const { uploadDocument } = require('../controllers/documentController');
 
 const router = express.Router();
 
 // ── POST /upload — single file (field: "document") ───────────────────────────
+//
+//   Middleware chain:
+//   1. authenticate  — verifies JWT, attaches req.user
+//   2. uploadSingle  — runs Multer, validates type/size, writes to uploads/
+//   3. uploadDocument — saves metadata to MongoDB, returns document record
+//
 router.post(
   '/upload',
-  // authenticate,          // ← uncomment when auth is wired end-to-end
+  authenticate,
   uploadSingle('document'),
   uploadDocument
-);
-
-// ── POST /upload-many — up to 10 files (field: "documents") ──────────────────
-router.post(
-  '/upload-many',
-  // authenticate,          // ← uncomment when auth is wired end-to-end
-  uploadArray('documents', 10),
-  uploadDocuments
 );
 
 module.exports = router;

@@ -1,74 +1,83 @@
 /**
  * @file controllers/documentController.js
- * @description Stub handlers for document upload endpoints.
+ * @description Request handlers for document upload endpoints.
  *
- *   These controllers are intentionally thin for now — they confirm
- *   that the file was accepted by Multer and respond with its metadata.
- *   Full RAG pipeline integration (parsing, chunking, embedding, vector
- *   store upsert) will be added in the next development day.
+ *   Layer responsibilities
+ *   ──────────────────────
+ *   • Validates that req.file exists (Multer populates it after the upload
+ *     middleware runs; validation errors from Multer itself are already
+ *     converted to AppError by the handleMulterError wrapper).
+ *   • Delegates all MongoDB work to documentService.
+ *   • Returns a consistent JSON envelope via successResponse.
+ *
+ *   Routes (mounted at /api/v1/documents)
+ *   ──────────────────────────────────────
+ *   POST /upload        → uploadDocument
  */
 
-const asyncHandler   = require('../utils/asyncHandler');
+const asyncHandler      = require('../utils/asyncHandler');
 const { successResponse } = require('../utils/ApiResponse');
-const AppError       = require('../utils/AppError');
+const AppError          = require('../utils/AppError');
+const { documentService } = require('../services');
 
 // ── POST /api/v1/documents/upload ─────────────────────────────────────────────
 
 /**
- * Upload a single document.
+ * Upload a single document and persist its metadata to MongoDB.
  *
- * Expects: multipart/form-data with field name "document"
- * The upload middleware (uploadSingle) runs before this handler and
- * populates req.file on success.
+ * Middleware chain (defined in documentRoutes.js):
+ *   authenticate  → verifies JWT, attaches req.user
+ *   uploadSingle  → runs Multer, populates req.file on success
+ *   uploadDocument (this handler)
+ *
+ * Success response (201):
+ * {
+ *   "success": true,
+ *   "message": "Document uploaded successfully.",
+ *   "data": {
+ *     "document": {
+ *       "_id": "...",
+ *       "fileName": "1718000000000-report.pdf",
+ *       "originalName": "report.pdf",
+ *       "fileType": "application/pdf",
+ *       "fileSize": 204800,
+ *       "uploadedBy": "64f...",
+ *       "uploadDate": "2024-06-10T12:00:00.000Z",
+ *       "status": "uploaded",
+ *       "createdAt": "...",
+ *       "updatedAt": "..."
+ *     }
+ *   }
+ * }
  *
  * @route  POST /api/v1/documents/upload
- * @access Private (requires authentication — wire authenticate middleware on route)
+ * @access Private — requires valid JWT (authenticate middleware)
  */
 const uploadDocument = asyncHandler(async (req, res) => {
-  // req.file is populated by Multer if a file was attached
+  // 1. Guard: Multer populates req.file only when a file was successfully
+  //    received.  If the request had no file field at all, req.file is
+  //    undefined here (Multer won't throw in that case).
   if (!req.file) {
-    throw AppError.badRequest('No file was attached. Please include a document in the request.');
+    throw AppError.badRequest(
+      'No file was attached. Send the file under the "document" field as multipart/form-data.'
+    );
   }
 
-  const { originalname, mimetype, size, filename, path: filePath } = req.file;
+  const { filename, originalname, mimetype, size } = req.file;
 
-  return successResponse(res, 201, 'Document uploaded successfully.', {
-    file: {
-      originalName: originalname,
-      storedName  : filename,
-      mimeType    : mimetype,
-      sizeBytes   : size,
-      path        : filePath,
-    },
-  });
-});
-
-// ── POST /api/v1/documents/upload-many ────────────────────────────────────────
-
-/**
- * Upload multiple documents in a single request.
- *
- * Expects: multipart/form-data with field name "documents" (1–10 files)
- * The upload middleware (uploadArray) runs before this handler and
- * populates req.files on success.
- *
- * @route  POST /api/v1/documents/upload-many
- * @access Private
- */
-const uploadDocuments = asyncHandler(async (req, res) => {
-  if (!req.files || req.files.length === 0) {
-    throw AppError.badRequest('No files were attached. Please include at least one document.');
-  }
-
-  const files = req.files.map(({ originalname, mimetype, size, filename, path: filePath }) => ({
+  // 2. Persist metadata — service handles DB interaction and validation errors
+  const document = await documentService.createDocument({
+    fileName    : filename,
     originalName: originalname,
-    storedName  : filename,
-    mimeType    : mimetype,
-    sizeBytes   : size,
-    path        : filePath,
-  }));
+    fileType    : mimetype,
+    fileSize    : size,
+    uploadedBy  : req.user._id,
+  });
 
-  return successResponse(res, 201, `${files.length} document(s) uploaded successfully.`, { files });
+  // 3. Respond with the full saved document
+  return successResponse(res, 201, 'Document uploaded successfully.', { document });
 });
 
-module.exports = { uploadDocument, uploadDocuments };
+// ── Exports ───────────────────────────────────────────────────────────────────
+
+module.exports = { uploadDocument };

@@ -9,4 +9,6 @@
  *   module.exports.documentService = require('./documentService');
  */
 
-module.exports = {};
+module.exports = {
+  documentService: require('./documentService'),
+};
