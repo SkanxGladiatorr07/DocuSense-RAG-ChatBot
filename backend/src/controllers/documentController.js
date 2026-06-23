@@ -161,11 +161,11 @@ const getDocument = asyncHandler(async (req, res) => {
 // ── POST /api/v1/documents/:id/process ────────────────────────────────────────
 
 /**
- * Trigger PDF text extraction for an already-uploaded document.
+ * Trigger text extraction for an already-uploaded document (PDF, DOCX, or TXT).
  *
- * The document must:
- *   • exist in MongoDB and be owned by the authenticated user
- *   • have MIME type application/pdf
+ * The document must exist in MongoDB and be owned by the authenticated user.
+ * The appropriate extractor is selected automatically based on the document's
+ * stored MIME type — no format hint is needed from the caller.
  *
  * Success response (200):
  * {
@@ -174,18 +174,17 @@ const getDocument = asyncHandler(async (req, res) => {
  *   "data": {
  *     "document": { "_id": "...", "status": "indexed", ... },
  *     "extraction": {
- *       "text"    : "Full extracted text...",
- *       "numPages": 5,
- *       "info"    : { "Author": "...", "Title": "..." },
- *       "metadata": {}
+ *       // PDF:  { text, numPages, info, metadata }
+ *       // DOCX: { text, wordCount, warnings }
+ *       // TXT:  { text, lineCount, charCount, encoding }
  *     }
  *   }
  * }
  *
  * Error responses:
- *   400 — :id malformed, or document is not a PDF
+ *   400 — :id malformed, or document type has no registered extractor
  *   404 — document not found or not owned by this user
- *   422 — PDF is corrupted, password-protected, or contains no text
+ *   422 — file is corrupted, unreadable, or contains no text
  *   500 — unexpected extraction error
  *
  * @route  POST /api/v1/documents/:id/process

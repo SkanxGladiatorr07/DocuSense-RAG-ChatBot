@@ -8,18 +8,36 @@
  *
  *   Public API
  *   ──────────
- *   createDocument(payload)              → saves a new Document record, returns it
- *   getUserDocuments(userId, options)    → paginated list of a user's documents
- *   getDocumentById(id, uid)            → fetches a single doc owned by the user
- *   processDocumentText(documentId, uid) → extracts PDF text, updates status in DB
+ *   createDocument(payload)               → saves a new Document record, returns it
+ *   getUserDocuments(userId, options)     → paginated list of a user's documents
+ *   getDocumentById(id, uid)             → fetches a single doc owned by the user
+ *   processDocumentText(documentId, uid)  → extracts text from PDF/DOCX/TXT, updates DB
  */
 
-const path     = require('path');
+const path = require('path');
 
-const { Document }  = require('../models');
-const AppError      = require('../utils/AppError');
-const logger        = require('../utils/logger');
-const pdfService    = require('./pdfService');
+const { Document } = require('../models');
+const AppError     = require('../utils/AppError');
+const logger       = require('../utils/logger');
+const pdfService   = require('./pdfService');
+const docxService  = require('./docxService');
+const txtService   = require('./txtService');
+
+// ── MIME → extractor dispatcher ────────────────────────────────────────────────
+
+/**
+ * Maps each supported MIME type to its dedicated extraction service.
+ * Each extractor must expose:  extractText(filePath) → { text, ...metadata }
+ *
+ * Adding a new format later only requires:
+ *   1. Creating the service module
+ *   2. Adding a single entry here
+ */
+const EXTRACTOR_MAP = {
+  'application/pdf'  : pdfService,
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': docxService,
+  'text/plain'       : txtService,
+};
 
 // ── createDocument ─────────────────────────────────────────────────────────────
 
@@ -141,19 +159,25 @@ const getUserDocuments = async (userId, { page = 1, limit = 10 } = {}) => {
 // ── processDocumentText ────────────────────────────────────────────────────────
 
 /**
- * Extract text from a PDF document and update its status in MongoDB.
+ * Extract text from an uploaded document (PDF, DOCX, or TXT) and update
+ * its processing status in MongoDB.
  *
  * Lifecycle
  * ─────────
  *   1. Fetch the document record (validates ownership)
- *   2. Guard: only PDFs are supported by this function
+ *   2. Resolve the correct extractor service from EXTRACTOR_MAP
  *   3. Transition status → "processing"
- *   4. Delegate to pdfService.extractText()
+ *   4. Delegate to the appropriate service's extractText()
  *   5a. On success → status "indexed", return extraction result
  *   5b. On failure → status "failed",  re-throw the original error
  *
- * The caller (controller / queue worker) receives:
- *   { document, extraction: { text, numPages, info, metadata } }
+ * The caller receives:
+ *   { document, extraction: { text, ...formatSpecificMetadata } }
+ *
+ * Extraction result shapes per format:
+ *   PDF  → { text, numPages, info, metadata }
+ *   DOCX → { text, wordCount, warnings }
+ *   TXT  → { text, lineCount, charCount, encoding }
  *
  * The document record is always saved with the final status so the DB
  * stays consistent even if the controller crashes after this call returns.
@@ -164,39 +188,44 @@ const getUserDocuments = async (userId, { page = 1, limit = 10 } = {}) => {
  *
  * @returns {Promise<{
  *   document  : import('mongoose').Document,
- *   extraction: { text: string, numPages: number, info: object, metadata: object }
+ *   extraction: object
  * }>}
  *
  * @throws {AppError} 404 – document not found or not owned by this user
- * @throws {AppError} 400 – document is not a PDF
- * @throws {AppError} 422 – PDF is corrupt, password-protected, or has no text
+ * @throws {AppError} 400 – document type has no registered extractor
+ * @throws {AppError} 422 – file is corrupt, unreadable, or contains no text
  * @throws {AppError} 500 – unexpected internal error
  */
 const processDocumentText = async (documentId, userId, uploadsDir) => {
   // ── 1. Fetch & authorise ────────────────────────────────────────────────────
   const doc = await getDocumentById(documentId, userId);
 
-  // ── 2. Guard: PDF only ──────────────────────────────────────────────────────
-  if (doc.fileType !== 'application/pdf') {
+  // ── 2. Resolve extractor ────────────────────────────────────────────────────
+  const extractor = EXTRACTOR_MAP[doc.fileType];
+
+  if (!extractor) {
     throw AppError.badRequest(
-      `processDocumentText only supports PDFs. ` +
-      `This document has type "${doc.fileType}".`
+      `No text extractor is registered for type "${doc.fileType}". ` +
+      `Supported types: ${Object.keys(EXTRACTOR_MAP).join(', ')}.`
     );
   }
 
   // Resolve the absolute path using the on-disk filename (set by Multer)
   const filePath = path.join(uploadsDir, doc.fileName);
 
-  logger.info(`[documentService] Processing document ${documentId} → ${doc.fileName}`);
+  logger.info(
+    `[documentService] Processing document ${documentId} ` +
+    `(${doc.fileType}) → ${doc.fileName}`
+  );
 
   // ── 3. Mark as processing ───────────────────────────────────────────────────
   doc.status = 'processing';
   await doc.save();
 
-  // ── 4. Extract text ─────────────────────────────────────────────────────────
+  // ── 4. Delegate to the appropriate extractor ────────────────────────────────
   let extraction;
   try {
-    extraction = await pdfService.extractText(filePath);
+    extraction = await extractor.extractText(filePath);
   } catch (extractionErr) {
     // ── 5b. Mark as failed & re-throw ────────────────────────────────────────
     logger.error(
@@ -220,9 +249,16 @@ const processDocumentText = async (documentId, userId, uploadsDir) => {
   doc.status = 'indexed';
   await doc.save();
 
+  // Use the most descriptive size metric available across all extractor shapes:
+  //   PDF  → numPages   DOCX → wordCount   TXT → lineCount
+  const sizeSummary =
+    extraction.numPages  != null ? `${extraction.numPages} pages`   :
+    extraction.wordCount != null ? `${extraction.wordCount} words`  :
+    extraction.lineCount != null ? `${extraction.lineCount} lines`  : 'n/a';
+
   logger.info(
     `[documentService] Document ${documentId} indexed successfully ` +
-    `(${extraction.numPages} pages, ${extraction.text.length} chars)`
+    `(${sizeSummary}, ${extraction.text.length} chars)`
   );
 
   return { document: doc, extraction };
