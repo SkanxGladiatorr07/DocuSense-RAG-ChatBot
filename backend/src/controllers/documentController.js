@@ -173,10 +173,14 @@ const getDocument = asyncHandler(async (req, res) => {
  *   "message": "Document processed successfully.",
  *   "data": {
  *     "document": { "_id": "...", "status": "indexed", ... },
- *     "extraction": {
- *       // PDF:  { text, numPages, info, metadata }
- *       // DOCX: { text, wordCount, warnings }
- *       // TXT:  { text, lineCount, charCount, encoding }
+ *     "result": {
+ *       "text"     : "Full extracted text...",
+ *       "format"   : "pdf" | "docx" | "txt",
+ *       "mimeType" : "application/pdf",
+ *       "fileName" : "1718000000000-report.pdf",
+ *       "charCount": 4096,
+ *       "status"   : "indexed",
+ *       "details"  : { ...format-specific fields... }
  *     }
  *   }
  * }
@@ -198,7 +202,7 @@ const processDocument = asyncHandler(async (req, res) => {
     throw AppError.badRequest(`"${id}" is not a valid document ID.`);
   }
 
-  const { document, extraction } = await documentService.processDocumentText(
+  const { document, result } = await documentService.processDocumentText(
     id,
     req.user._id,
     UPLOADS_DIR
@@ -206,7 +210,7 @@ const processDocument = asyncHandler(async (req, res) => {
 
   return successResponse(res, 200, 'Document processed successfully.', {
     document,
-    extraction,
+    result,
   });
 });
 

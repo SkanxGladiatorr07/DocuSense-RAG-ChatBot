@@ -6,38 +6,29 @@
  *   stay thin (validate → delegate → respond) and the DB layer remains
  *   independently testable.
  *
+ *   Processing delegation
+ *   ─────────────────────
+ *   Text extraction is fully delegated to processingService.processFile().
+ *   This service only manages the MongoDB status lifecycle:
+ *     uploaded → processing → indexed
+ *                            ↘ failed
+ *
  *   Public API
  *   ──────────
- *   createDocument(payload)               → saves a new Document record, returns it
- *   getUserDocuments(userId, options)     → paginated list of a user's documents
- *   getDocumentById(id, uid)             → fetches a single doc owned by the user
- *   processDocumentText(documentId, uid)  → extracts text from PDF/DOCX/TXT, updates DB
+ *   createDocument(payload)              → saves a new Document record, returns it
+ *   getUserDocuments(userId, options)    → paginated list of a user's documents
+ *   getDocumentById(id, uid)            → fetches a single doc owned by the user
+ *   processDocumentText(id, uid, dir)   → delegates to processingService, updates DB
  */
 
 const path = require('path');
 
-const { Document } = require('../models');
-const AppError     = require('../utils/AppError');
-const logger       = require('../utils/logger');
-const pdfService   = require('./pdfService');
-const docxService  = require('./docxService');
-const txtService   = require('./txtService');
+const { Document }      = require('../models');
+const AppError          = require('../utils/AppError');
+const logger            = require('../utils/logger');
+const processingService = require('./processingService');
+const { STATUSES }      = processingService;
 
-// ── MIME → extractor dispatcher ────────────────────────────────────────────────
-
-/**
- * Maps each supported MIME type to its dedicated extraction service.
- * Each extractor must expose:  extractText(filePath) → { text, ...metadata }
- *
- * Adding a new format later only requires:
- *   1. Creating the service module
- *   2. Adding a single entry here
- */
-const EXTRACTOR_MAP = {
-  'application/pdf'  : pdfService,
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': docxService,
-  'text/plain'       : txtService,
-};
 
 // ── createDocument ─────────────────────────────────────────────────────────────
 
@@ -159,58 +150,45 @@ const getUserDocuments = async (userId, { page = 1, limit = 10 } = {}) => {
 // ── processDocumentText ────────────────────────────────────────────────────────
 
 /**
- * Extract text from an uploaded document (PDF, DOCX, or TXT) and update
- * its processing status in MongoDB.
+ * Orchestrate text extraction for an uploaded document (PDF, DOCX, or TXT)
+ * and persist the resulting status changes in MongoDB.
+ *
+ * This function owns the DB lifecycle only — all format detection, routing,
+ * and extraction is fully delegated to processingService.processFile().
  *
  * Lifecycle
  * ─────────
- *   1. Fetch the document record (validates ownership)
- *   2. Resolve the correct extractor service from EXTRACTOR_MAP
- *   3. Transition status → "processing"
- *   4. Delegate to the appropriate service's extractText()
- *   5a. On success → status "indexed", return extraction result
- *   5b. On failure → status "failed",  re-throw the original error
- *
- * The caller receives:
- *   { document, extraction: { text, ...formatSpecificMetadata } }
- *
- * Extraction result shapes per format:
- *   PDF  → { text, numPages, info, metadata }
- *   DOCX → { text, wordCount, warnings }
- *   TXT  → { text, lineCount, charCount, encoding }
- *
- * The document record is always saved with the final status so the DB
- * stays consistent even if the controller crashes after this call returns.
+ *   1. Fetch & authorise   (getDocumentById — scoped to userId)
+ *   2. status → "processing"  (saved immediately so UI can poll)
+ *   3. processingService.processFile(filePath, mimeType)
+ *   4a. On success → status "indexed", return { document, result }
+ *   4b. On failure → status "failed",  re-throw original AppError
  *
  * @param {string} documentId  - The document's MongoDB _id
  * @param {string} userId      - The authenticated user's _id
  * @param {string} uploadsDir  - Absolute path to the uploads directory
  *
  * @returns {Promise<{
- *   document  : import('mongoose').Document,
- *   extraction: object
+ *   document: import('mongoose').Document,
+ *   result  : {
+ *     text     : string,
+ *     format   : string,
+ *     mimeType : string,
+ *     fileName : string,
+ *     charCount: number,
+ *     status   : 'indexed',
+ *     details  : object,
+ *   }
  * }>}
  *
- * @throws {AppError} 404 – document not found or not owned by this user
- * @throws {AppError} 400 – document type has no registered extractor
- * @throws {AppError} 422 – file is corrupt, unreadable, or contains no text
- * @throws {AppError} 500 – unexpected internal error
+ * @throws {AppError} 404     – document not found or not owned by this user
+ * @throws {AppError} 400/415 – document type has no registered extractor
+ * @throws {AppError} 422     – file is corrupt, unreadable, or contains no text
+ * @throws {AppError} 500     – unexpected internal error
  */
 const processDocumentText = async (documentId, userId, uploadsDir) => {
-  // ── 1. Fetch & authorise ────────────────────────────────────────────────────
+  // ── 1. Fetch & authorise ──────────────────────────────────────────────────
   const doc = await getDocumentById(documentId, userId);
-
-  // ── 2. Resolve extractor ────────────────────────────────────────────────────
-  const extractor = EXTRACTOR_MAP[doc.fileType];
-
-  if (!extractor) {
-    throw AppError.badRequest(
-      `No text extractor is registered for type "${doc.fileType}". ` +
-      `Supported types: ${Object.keys(EXTRACTOR_MAP).join(', ')}.`
-    );
-  }
-
-  // Resolve the absolute path using the on-disk filename (set by Multer)
   const filePath = path.join(uploadsDir, doc.fileName);
 
   logger.info(
@@ -218,50 +196,40 @@ const processDocumentText = async (documentId, userId, uploadsDir) => {
     `(${doc.fileType}) → ${doc.fileName}`
   );
 
-  // ── 3. Mark as processing ───────────────────────────────────────────────────
-  doc.status = 'processing';
+  // ── 2. Mark as processing ────────────────────────────────────────────────
+  doc.status = STATUSES.PROCESSING;
   await doc.save();
 
-  // ── 4. Delegate to the appropriate extractor ────────────────────────────────
-  let extraction;
+  // ── 3. Delegate to processingService ────────────────────────────────────
+  let result;
   try {
-    extraction = await extractor.extractText(filePath);
+    result = await processingService.processFile(filePath, doc.fileType);
   } catch (extractionErr) {
-    // ── 5b. Mark as failed & re-throw ────────────────────────────────────────
+    // ── 4b. Mark as failed & re-throw ───────────────────────────────────────
     logger.error(
       `[documentService] Extraction failed for ${documentId}: ${extractionErr.message}`
     );
-
     try {
-      doc.status = 'failed';
+      doc.status = STATUSES.FAILED;
       await doc.save();
     } catch (saveErr) {
-      // Log but do not swallow the original extraction error
       logger.error(
         `[documentService] Could not persist "failed" status for ${documentId}: ${saveErr.message}`
       );
     }
-
     throw extractionErr; // Propagate the original AppError to the controller
   }
 
-  // ── 5a. Mark as indexed ─────────────────────────────────────────────────────
-  doc.status = 'indexed';
+  // ── 4a. Mark as indexed ──────────────────────────────────────────────────
+  doc.status = STATUSES.INDEXED;
   await doc.save();
-
-  // Use the most descriptive size metric available across all extractor shapes:
-  //   PDF  → numPages   DOCX → wordCount   TXT → lineCount
-  const sizeSummary =
-    extraction.numPages  != null ? `${extraction.numPages} pages`   :
-    extraction.wordCount != null ? `${extraction.wordCount} words`  :
-    extraction.lineCount != null ? `${extraction.lineCount} lines`  : 'n/a';
 
   logger.info(
     `[documentService] Document ${documentId} indexed successfully ` +
-    `(${sizeSummary}, ${extraction.text.length} chars)`
+    `(${result.charCount} chars, format: ${result.format})`
   );
 
-  return { document: doc, extraction };
+  return { document: doc, result };
 };
 
 // ── Exports ────────────────────────────────────────────────────────────────────
