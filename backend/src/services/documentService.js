@@ -8,13 +8,18 @@
  *
  *   Public API
  *   ──────────
- *   createDocument(payload)          → saves a new Document record, returns it
- *   getUserDocuments(userId, options) → paginated list of a user's documents
- *   getDocumentById(id, uid)         → fetches a single doc owned by the user
+ *   createDocument(payload)              → saves a new Document record, returns it
+ *   getUserDocuments(userId, options)    → paginated list of a user's documents
+ *   getDocumentById(id, uid)            → fetches a single doc owned by the user
+ *   processDocumentText(documentId, uid) → extracts PDF text, updates status in DB
  */
 
-const { Document } = require('../models');
-const AppError     = require('../utils/AppError');
+const path     = require('path');
+
+const { Document }  = require('../models');
+const AppError      = require('../utils/AppError');
+const logger        = require('../utils/logger');
+const pdfService    = require('./pdfService');
 
 // ── createDocument ─────────────────────────────────────────────────────────────
 
@@ -133,6 +138,96 @@ const getUserDocuments = async (userId, { page = 1, limit = 10 } = {}) => {
   };
 };
 
+// ── processDocumentText ────────────────────────────────────────────────────────
+
+/**
+ * Extract text from a PDF document and update its status in MongoDB.
+ *
+ * Lifecycle
+ * ─────────
+ *   1. Fetch the document record (validates ownership)
+ *   2. Guard: only PDFs are supported by this function
+ *   3. Transition status → "processing"
+ *   4. Delegate to pdfService.extractText()
+ *   5a. On success → status "indexed", return extraction result
+ *   5b. On failure → status "failed",  re-throw the original error
+ *
+ * The caller (controller / queue worker) receives:
+ *   { document, extraction: { text, numPages, info, metadata } }
+ *
+ * The document record is always saved with the final status so the DB
+ * stays consistent even if the controller crashes after this call returns.
+ *
+ * @param {string} documentId  - The document's MongoDB _id
+ * @param {string} userId      - The authenticated user's _id
+ * @param {string} uploadsDir  - Absolute path to the uploads directory
+ *
+ * @returns {Promise<{
+ *   document  : import('mongoose').Document,
+ *   extraction: { text: string, numPages: number, info: object, metadata: object }
+ * }>}
+ *
+ * @throws {AppError} 404 – document not found or not owned by this user
+ * @throws {AppError} 400 – document is not a PDF
+ * @throws {AppError} 422 – PDF is corrupt, password-protected, or has no text
+ * @throws {AppError} 500 – unexpected internal error
+ */
+const processDocumentText = async (documentId, userId, uploadsDir) => {
+  // ── 1. Fetch & authorise ────────────────────────────────────────────────────
+  const doc = await getDocumentById(documentId, userId);
+
+  // ── 2. Guard: PDF only ──────────────────────────────────────────────────────
+  if (doc.fileType !== 'application/pdf') {
+    throw AppError.badRequest(
+      `processDocumentText only supports PDFs. ` +
+      `This document has type "${doc.fileType}".`
+    );
+  }
+
+  // Resolve the absolute path using the on-disk filename (set by Multer)
+  const filePath = path.join(uploadsDir, doc.fileName);
+
+  logger.info(`[documentService] Processing document ${documentId} → ${doc.fileName}`);
+
+  // ── 3. Mark as processing ───────────────────────────────────────────────────
+  doc.status = 'processing';
+  await doc.save();
+
+  // ── 4. Extract text ─────────────────────────────────────────────────────────
+  let extraction;
+  try {
+    extraction = await pdfService.extractText(filePath);
+  } catch (extractionErr) {
+    // ── 5b. Mark as failed & re-throw ────────────────────────────────────────
+    logger.error(
+      `[documentService] Extraction failed for ${documentId}: ${extractionErr.message}`
+    );
+
+    try {
+      doc.status = 'failed';
+      await doc.save();
+    } catch (saveErr) {
+      // Log but do not swallow the original extraction error
+      logger.error(
+        `[documentService] Could not persist "failed" status for ${documentId}: ${saveErr.message}`
+      );
+    }
+
+    throw extractionErr; // Propagate the original AppError to the controller
+  }
+
+  // ── 5a. Mark as indexed ─────────────────────────────────────────────────────
+  doc.status = 'indexed';
+  await doc.save();
+
+  logger.info(
+    `[documentService] Document ${documentId} indexed successfully ` +
+    `(${extraction.numPages} pages, ${extraction.text.length} chars)`
+  );
+
+  return { document: doc, extraction };
+};
+
 // ── Exports ────────────────────────────────────────────────────────────────────
 
-module.exports = { createDocument, getUserDocuments, getDocumentById };
+module.exports = { createDocument, getUserDocuments, getDocumentById, processDocumentText };

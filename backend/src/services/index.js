@@ -11,4 +11,5 @@
 
 module.exports = {
   documentService: require('./documentService'),
+  pdfService     : require('./pdfService'),
 };

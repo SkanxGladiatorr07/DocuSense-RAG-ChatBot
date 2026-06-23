@@ -4,17 +4,19 @@
  *
  *   Base path (mounted in routes/index.js): /api/v1/documents
  *
- *   ┌──────────────────────────────────────────────────────────────────────────────┐
- *   │ Method │ Path      │ Middleware      │ Description                           │
- *   ├────────┼───────────┼─────────────────┼──────────────────────────────────────┤
- *   │ POST   │ /upload   │ authenticate    │ Upload a single document              │
- *   │        │           │ uploadSingle    │                                       │
- *   ├────────┼───────────┼─────────────────┼──────────────────────────────────────┤
- *   │ GET    │ /         │ authenticate    │ List user's docs (paginated)          │
- *   │        │           │                 │ ?page=1&limit=10                      │
- *   ├────────┼───────────┼─────────────────┼──────────────────────────────────────┤
- *   │ GET    │ /:id      │ authenticate    │ Fetch a single document by ID         │
- *   └──────────────────────────────────────────────────────────────────────────────┘
+ *   ┌────────┬─────────────┬─────────────────┬───────────────────────────────────────┐
+ *   │ Method │ Path          │ Middleware      │ Description                           │
+ *   ├────────┼─────────────┼─────────────────┼───────────────────────────────────────┤
+ *   │ POST   │ /upload       │ authenticate    │ Upload a single document              │
+ *   │        │               │ uploadSingle    │                                       │
+ *   ├────────┼─────────────┼─────────────────┼───────────────────────────────────────┤
+ *   │ GET    │ /             │ authenticate    │ List user’s docs (paginated)          │
+ *   │        │               │                 │ ?page=1&limit=10                      │
+ *   ├────────┼─────────────┼─────────────────┼───────────────────────────────────────┤
+ *   │ GET    │ /:id          │ authenticate    │ Fetch a single document by ID         │
+ *   ├────────┼─────────────┼─────────────────┼───────────────────────────────────────┤
+ *   │ POST   │ /:id/process  │ authenticate    │ Extract text from an uploaded PDF     │
+ *   └────────┴─────────────┴─────────────────┴───────────────────────────────────────┘
  */
 
 const express      = require('express');
@@ -24,6 +26,7 @@ const {
   uploadDocument,
   getDocuments,
   getDocument,
+  processDocument,
 } = require('../controllers/documentController');
 
 const router = express.Router();
@@ -61,6 +64,18 @@ router.get(
   '/:id',
   authenticate,
   getDocument
+);
+
+// ── POST /:id/process — extract text from a previously uploaded PDF ────────────────
+//
+//   Middleware chain:
+//   1. authenticate    — verifies JWT, attaches req.user
+//   2. processDocument — runs pdfService, updates doc status, returns text
+//
+router.post(
+  '/:id/process',
+  authenticate,
+  processDocument
 );
 
 module.exports = router;

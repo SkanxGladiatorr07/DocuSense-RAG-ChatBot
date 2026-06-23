@@ -12,15 +12,21 @@
  *
  *   Routes (mounted at /api/v1/documents)
  *   ──────────────────────────────────────
- *   POST /upload    → uploadDocument
- *   GET  /          → getDocuments
- *   GET  /:id       → getDocument
+ *   POST /upload        → uploadDocument
+ *   GET  /              → getDocuments
+ *   GET  /:id           → getDocument
+ *   POST /:id/process   → processDocument
  */
 
-const asyncHandler      = require('../utils/asyncHandler');
+const path              = require('path');
+
+const asyncHandler        = require('../utils/asyncHandler');
 const { successResponse } = require('../utils/ApiResponse');
-const AppError          = require('../utils/AppError');
+const AppError            = require('../utils/AppError');
 const { documentService } = require('../services');
+
+// Absolute path to the uploads directory — mirrors the path used by Multer
+const UPLOADS_DIR = path.resolve(__dirname, '../../../uploads');
 
 // ── POST /api/v1/documents/upload ─────────────────────────────────────────────
 
@@ -152,6 +158,59 @@ const getDocument = asyncHandler(async (req, res) => {
   return successResponse(res, 200, 'Document fetched successfully.', { document });
 });
 
+// ── POST /api/v1/documents/:id/process ────────────────────────────────────────
+
+/**
+ * Trigger PDF text extraction for an already-uploaded document.
+ *
+ * The document must:
+ *   • exist in MongoDB and be owned by the authenticated user
+ *   • have MIME type application/pdf
+ *
+ * Success response (200):
+ * {
+ *   "success": true,
+ *   "message": "Document processed successfully.",
+ *   "data": {
+ *     "document": { "_id": "...", "status": "indexed", ... },
+ *     "extraction": {
+ *       "text"    : "Full extracted text...",
+ *       "numPages": 5,
+ *       "info"    : { "Author": "...", "Title": "..." },
+ *       "metadata": {}
+ *     }
+ *   }
+ * }
+ *
+ * Error responses:
+ *   400 — :id malformed, or document is not a PDF
+ *   404 — document not found or not owned by this user
+ *   422 — PDF is corrupted, password-protected, or contains no text
+ *   500 — unexpected extraction error
+ *
+ * @route  POST /api/v1/documents/:id/process
+ * @access Private
+ */
+const processDocument = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  // Guard: reject obviously malformed ids before hitting the DB
+  if (!id.match(/^[a-f\d]{24}$/i)) {
+    throw AppError.badRequest(`"${id}" is not a valid document ID.`);
+  }
+
+  const { document, extraction } = await documentService.processDocumentText(
+    id,
+    req.user._id,
+    UPLOADS_DIR
+  );
+
+  return successResponse(res, 200, 'Document processed successfully.', {
+    document,
+    extraction,
+  });
+});
+
 // ── Exports ───────────────────────────────────────────────────────────────────
 
-module.exports = { uploadDocument, getDocuments, getDocument };
+module.exports = { uploadDocument, getDocuments, getDocument, processDocument };
