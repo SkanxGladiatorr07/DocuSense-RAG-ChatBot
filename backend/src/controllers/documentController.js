@@ -167,20 +167,28 @@ const getDocument = asyncHandler(async (req, res) => {
  * The appropriate extractor is selected automatically based on the document's
  * stored MIME type — no format hint is needed from the caller.
  *
+ * On success, the extracted text is persisted to doc.extractedText (temporary
+ * storage for the RAG pipeline) and a concise processing summary is returned.
+ *
  * Success response (200):
  * {
  *   "success": true,
  *   "message": "Document processed successfully.",
  *   "data": {
- *     "document": { "_id": "...", "status": "indexed", ... },
- *     "result": {
- *       "text"     : "Full extracted text...",
- *       "format"   : "pdf" | "docx" | "txt",
- *       "mimeType" : "application/pdf",
- *       "fileName" : "1718000000000-report.pdf",
- *       "charCount": 4096,
- *       "status"   : "indexed",
- *       "details"  : { ...format-specific fields... }
+ *     "document": {
+ *       "_id": "...", "status": "indexed",
+ *       "extractedText": "Full plain-text content...",
+ *       "processedAt": "2024-06-10T12:00:00.000Z", ...
+ *     },
+ *     "summary": {
+ *       "documentId"  : "64f...",
+ *       "originalName": "report.pdf",
+ *       "format"      : "pdf",
+ *       "mimeType"    : "application/pdf",
+ *       "status"      : "indexed",
+ *       "charCount"   : 4096,
+ *       "processedAt" : "2024-06-10T12:00:00.000Z",
+ *       "details"     : { "numPages": 5, "info": {...}, "metadata": {} }
  *     }
  *   }
  * }
@@ -202,7 +210,7 @@ const processDocument = asyncHandler(async (req, res) => {
     throw AppError.badRequest(`"${id}" is not a valid document ID.`);
   }
 
-  const { document, result } = await documentService.processDocumentText(
+  const { document, summary } = await documentService.processDocumentText(
     id,
     req.user._id,
     UPLOADS_DIR
@@ -210,7 +218,7 @@ const processDocument = asyncHandler(async (req, res) => {
 
   return successResponse(res, 200, 'Document processed successfully.', {
     document,
-    result,
+    summary,
   });
 });
 

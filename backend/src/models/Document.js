@@ -3,8 +3,9 @@
  * @description Mongoose schema and model for uploaded documents.
  *
  *   Tracks everything the RAG pipeline needs to know about a file:
- *   where it lives on disk, who uploaded it, what type it is, and
- *   which stage of processing it has reached.
+ *   where it lives on disk, who uploaded it, what type it is,
+ *   which stage of processing it has reached, and the extracted text
+ *   content held temporarily until the vector-embedding stage consumes it.
  *
  *   Status lifecycle:
  *     uploaded → processing → indexed
@@ -94,6 +95,38 @@ const documentSchema = new mongoose.Schema(
       },
       default: 'uploaded',
       index  : true,   // fast look-up of docs by status (e.g. all "failed")
+    },
+    // ── Processing output ──────────────────────────────────────────────────────
+
+    /**
+     * Extracted plain-text content from the document.
+     *
+     * Populated by processingService after successful extraction.
+     * Held here temporarily until the embedding / chunking stage reads it.
+     * Not indexed — can be large (up to ~5 MB of text for a 10 MB PDF).
+     */
+    extractedText: {
+      type   : String,
+      default: null,
+    },
+
+    /**
+     * Human-readable error message captured when status transitions to
+     * "failed".  Lets the UI surface a meaningful reason without exposing
+     * stack traces.
+     */
+    processingError: {
+      type   : String,
+      default: null,
+    },
+
+    /**
+     * Timestamp set when processing completes (success or failure).
+     * Useful for auditing and detecting stale "processing" documents.
+     */
+    processedAt: {
+      type   : Date,
+      default: null,
     },
   },
   {

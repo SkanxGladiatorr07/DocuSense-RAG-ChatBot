@@ -13,6 +13,7 @@ const morgan = require('morgan');
 
 const env = require('./config/env');
 const routes = require('./routes');
+const documentRoutes = require('./routes/documentRoutes');
 const notFound = require('./middleware/notFound');
 const errorHandler = require('./middleware/errorHandler');
 
@@ -39,6 +40,13 @@ app.use(morgan(env.isDev ? 'dev' : 'combined'));
 
 // ── API Routes ────────────────────────────────────────────────────────────────
 app.use('/api/v1', routes);
+
+// ── Version-agnostic alias: POST /api/documents/:id/process ──────────────────
+// Mounts the document router at /api/documents so callers can use either:
+//   POST /api/v1/documents/:id/process  (versioned — preferred)
+//   POST /api/documents/:id/process     (unversioned alias — for compatibility)
+// Both paths hit the same handlers; no logic is duplicated.
+app.use('/api/documents', documentRoutes);
 
 // ── Health check at root (as per spec) ───────────────────────────────────────
 // Also reachable via GET /api/v1/ through the router above

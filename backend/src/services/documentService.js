@@ -150,19 +150,28 @@ const getUserDocuments = async (userId, { page = 1, limit = 10 } = {}) => {
 // ── processDocumentText ────────────────────────────────────────────────────────
 
 /**
- * Orchestrate text extraction for an uploaded document (PDF, DOCX, or TXT)
- * and persist the resulting status changes in MongoDB.
+ * Orchestrate text extraction for an uploaded document (PDF, DOCX, or TXT),
+ * persist the extracted text and status in MongoDB, and return a processing
+ * summary ready for the HTTP response.
  *
  * This function owns the DB lifecycle only — all format detection, routing,
- * and extraction is fully delegated to processingService.processFile().
+ * and extraction is delegated to processingService.processFile().
  *
  * Lifecycle
  * ─────────
  *   1. Fetch & authorise   (getDocumentById — scoped to userId)
- *   2. status → "processing"  (saved immediately so UI can poll)
+ *   2. status → "processing"  (saved so the UI can poll immediately)
  *   3. processingService.processFile(filePath, mimeType)
- *   4a. On success → status "indexed", return { document, result }
- *   4b. On failure → status "failed",  re-throw original AppError
+ *   4a. On success →
+ *         doc.extractedText = result.text   (temporary storage)
+ *         doc.processedAt   = now
+ *         doc.status        = "indexed"
+ *         → save, return { document, summary }
+ *   4b. On failure →
+ *         doc.processingError = err.message
+ *         doc.processedAt     = now
+ *         doc.status          = "failed"
+ *         → save (best-effort), re-throw AppError
  *
  * @param {string} documentId  - The document's MongoDB _id
  * @param {string} userId      - The authenticated user's _id
@@ -170,14 +179,15 @@ const getUserDocuments = async (userId, { page = 1, limit = 10 } = {}) => {
  *
  * @returns {Promise<{
  *   document: import('mongoose').Document,
- *   result  : {
- *     text     : string,
- *     format   : string,
- *     mimeType : string,
- *     fileName : string,
- *     charCount: number,
- *     status   : 'indexed',
- *     details  : object,
+ *   summary : {
+ *     documentId  : string,
+ *     originalName: string,
+ *     format      : string,
+ *     mimeType    : string,
+ *     status      : 'indexed',
+ *     charCount   : number,
+ *     processedAt : Date,
+ *     details     : object,
  *   }
  * }>}
  *
@@ -197,7 +207,9 @@ const processDocumentText = async (documentId, userId, uploadsDir) => {
   );
 
   // ── 2. Mark as processing ────────────────────────────────────────────────
-  doc.status = STATUSES.PROCESSING;
+  doc.status          = STATUSES.PROCESSING;
+  doc.extractedText   = null;  // clear any previous extraction
+  doc.processingError = null;
   await doc.save();
 
   // ── 3. Delegate to processingService ────────────────────────────────────
@@ -205,23 +217,29 @@ const processDocumentText = async (documentId, userId, uploadsDir) => {
   try {
     result = await processingService.processFile(filePath, doc.fileType);
   } catch (extractionErr) {
-    // ── 4b. Mark as failed & re-throw ───────────────────────────────────────
+    // ── 4b. Persist failure state & re-throw ─────────────────────────────
     logger.error(
       `[documentService] Extraction failed for ${documentId}: ${extractionErr.message}`
     );
     try {
-      doc.status = STATUSES.FAILED;
+      doc.status          = STATUSES.FAILED;
+      doc.processingError = extractionErr.message;
+      doc.processedAt     = new Date();
       await doc.save();
     } catch (saveErr) {
       logger.error(
         `[documentService] Could not persist "failed" status for ${documentId}: ${saveErr.message}`
       );
     }
-    throw extractionErr; // Propagate the original AppError to the controller
+    throw extractionErr;
   }
 
-  // ── 4a. Mark as indexed ──────────────────────────────────────────────────
-  doc.status = STATUSES.INDEXED;
+  // ── 4a. Persist success state ────────────────────────────────────────────
+  const processedAt     = new Date();
+  doc.status            = STATUSES.INDEXED;
+  doc.extractedText     = result.text;   // stored temporarily for RAG pipeline
+  doc.processingError   = null;
+  doc.processedAt       = processedAt;
   await doc.save();
 
   logger.info(
@@ -229,7 +247,19 @@ const processDocumentText = async (documentId, userId, uploadsDir) => {
     `(${result.charCount} chars, format: ${result.format})`
   );
 
-  return { document: doc, result };
+  // ── 5. Build processing summary ──────────────────────────────────────────
+  const summary = {
+    documentId  : doc._id,
+    originalName: doc.originalName,
+    format      : result.format,
+    mimeType    : result.mimeType,
+    status      : doc.status,
+    charCount   : result.charCount,
+    processedAt,
+    details     : result.details,
+  };
+
+  return { document: doc, summary };
 };
 
 // ── Exports ────────────────────────────────────────────────────────────────────
