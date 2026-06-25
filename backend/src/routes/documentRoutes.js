@@ -27,6 +27,7 @@ const {
   getDocuments,
   getDocument,
   processDocument,
+  chunkDocument,
 } = require('../controllers/documentController');
 
 const router = express.Router();
@@ -76,6 +77,18 @@ router.post(
   '/:id/process',
   authenticate,
   processDocument
+);
+
+// ── POST /:id/chunk — segment document text into chunks ─────────────────────────
+//
+//   Middleware chain:
+//   1. authenticate  — verifies JWT, attaches req.user
+//   2. chunkDocument — retrieves document, chunks it, saves chunks, returns summary
+//
+router.post(
+  '/:id/chunk',
+  authenticate,
+  chunkDocument
 );
 
 module.exports = router;

@@ -222,6 +222,44 @@ const processDocument = asyncHandler(async (req, res) => {
   });
 });
 
+// ── POST /api/v1/documents/:id/chunk ──────────────────────────────────────────
+
+/**
+ * Trigger chunking for an already-processed document.
+ *
+ * Success response (200):
+ * {
+ *   "success": true,
+ *   "message": "Document chunked successfully.",
+ *   "data": {
+ *     "totalChunks": 12,
+ *     "avgChunkSize": 498,
+ *     "documentId": "64f..."
+ *   }
+ * }
+ *
+ * @route  POST /api/v1/documents/:id/chunk
+ * @access Private
+ */
+const chunkDocument = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  // Guard: reject obviously malformed ids before hitting the DB
+  if (!id.match(/^[a-f\d]{24}$/i)) {
+    throw AppError.badRequest(`"${id}" is not a valid document ID.`);
+  }
+
+  const result = await documentService.chunkDocument(id, req.user._id);
+
+  return successResponse(res, 200, 'Document chunked successfully.', result);
+});
+
 // ── Exports ───────────────────────────────────────────────────────────────────
 
-module.exports = { uploadDocument, getDocuments, getDocument, processDocument };
+module.exports = {
+  uploadDocument,
+  getDocuments,
+  getDocument,
+  processDocument,
+  chunkDocument,
+};

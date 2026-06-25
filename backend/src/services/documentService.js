@@ -27,6 +27,8 @@ const { Document }      = require('../models');
 const AppError          = require('../utils/AppError');
 const logger            = require('../utils/logger');
 const processingService = require('./processingService');
+const chunkingService   = require('./chunkingService');
+const chunkStorageService = require('./chunkStorageService');
 const { STATUSES }      = processingService;
 
 
@@ -262,6 +264,58 @@ const processDocumentText = async (documentId, userId, uploadsDir) => {
   return { document: doc, summary };
 };
 
+// ── chunkDocument ─────────────────────────────────────────────────────────────
+
+/**
+ * Chunk a document's extracted text and save the resulting chunks to MongoDB.
+ *
+ * @param {string} documentId - The document ID
+ * @param {string} userId - The authenticated user ID (for authorization checking)
+ * @returns {Promise<{ totalChunks: number, avgChunkSize: number, documentId: string }>}
+ * @throws {AppError} 404 - Document not found or not owned by user
+ * @throws {AppError} 400/422 - Document has not been processed/extracted yet, or text is empty
+ */
+const chunkDocument = async (documentId, userId) => {
+  // 1. Fetch document and verify ownership
+  const doc = await getDocumentById(documentId, userId);
+
+  // 2. Guard: verify document has been processed/has extracted text
+  if (!doc.extractedText) {
+    throw AppError.unprocessable(
+      'Document cannot be chunked because it has no extracted text. Please process the document first.'
+    );
+  }
+
+  // 3. Generate Chunks
+  const chunks = chunkingService.chunkText(doc.extractedText);
+
+  if (chunks.length === 0) {
+    throw AppError.unprocessable(
+      'Document text resulted in 0 chunks. The extracted text might be empty or invalid.'
+    );
+  }
+
+  // 4. Save Chunks to MongoDB
+  await chunkStorageService.storeChunks(documentId, chunks);
+
+  // 5. Calculate average chunk size (words)
+  const totalChunks = chunks.length;
+  const totalWords = chunks.reduce((sum, chunk) => sum + chunk.wordCount, 0);
+  const avgChunkSize = Math.round(totalWords / totalChunks);
+
+  return {
+    totalChunks,
+    avgChunkSize,
+    documentId: doc._id,
+  };
+};
+
 // ── Exports ────────────────────────────────────────────────────────────────────
 
-module.exports = { createDocument, getUserDocuments, getDocumentById, processDocumentText };
+module.exports = {
+  createDocument,
+  getUserDocuments,
+  getDocumentById,
+  processDocumentText,
+  chunkDocument,
+};
