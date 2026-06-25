@@ -16,4 +16,5 @@ module.exports = {
   docxService      : require('./docxService'),
   txtService       : require('./txtService'),
   chunkingService  : require('./chunkingService'),
+  chunkStorageService: require('./chunkStorageService'),
 };
