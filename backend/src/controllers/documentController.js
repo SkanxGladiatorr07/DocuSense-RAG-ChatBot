@@ -23,7 +23,7 @@ const path              = require('path');
 const asyncHandler        = require('../utils/asyncHandler');
 const { successResponse } = require('../utils/ApiResponse');
 const AppError            = require('../utils/AppError');
-const { documentService } = require('../services');
+const { documentService, embeddingPipelineService } = require('../services');
 
 // Absolute path to the uploads directory — mirrors the path used by Multer
 const UPLOADS_DIR = path.resolve(__dirname, '../../../uploads');
@@ -254,6 +254,40 @@ const chunkDocument = asyncHandler(async (req, res) => {
   return successResponse(res, 200, 'Document chunked successfully.', result);
 });
 
+// ── POST /api/v1/documents/:id/embed ──────────────────────────────────────────
+
+/**
+ * Trigger embedding generation for all chunks belonging to a document.
+ *
+ * Success response (200):
+ * {
+ *   "success": true,
+ *   "message": "Document embeddings generated successfully.",
+ *   "data": {
+ *     "documentId": "64f...",
+ *     "totalProcessedChunks": 12,
+ *     "successfulEmbeddings": 12,
+ *     "failedEmbeddings": 0,
+ *     "status": "indexed"
+ *   }
+ * }
+ *
+ * @route  POST /api/v1/documents/:id/embed
+ * @access Private
+ */
+const embedDocument = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  // Guard: reject obviously malformed ids before hitting the DB
+  if (!id.match(/^[a-f\d]{24}$/i)) {
+    throw AppError.badRequest(`"${id}" is not a valid document ID.`);
+  }
+
+  const result = await embeddingPipelineService.runEmbeddingPipeline(id, req.user._id);
+
+  return successResponse(res, 200, 'Document embeddings generated successfully.', result);
+});
+
 // ── Exports ───────────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -262,4 +296,5 @@ module.exports = {
   getDocument,
   processDocument,
   chunkDocument,
+  embedDocument,
 };

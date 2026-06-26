@@ -61,41 +61,52 @@ const runEmbeddingPipeline = async (documentId, userId) => {
       );
     }
 
-    let embeddedCount = 0;
-    let skippedCount = 0;
+    let successfulEmbeddings = 0;
+    let failedEmbeddings = 0;
 
     // ── 4. Generate & save embeddings ────────────────────────────────────────
     for (const chunk of chunks) {
-      // Skip chunks that already contain embeddings
-      if (Array.isArray(chunk.embedding) && chunk.embedding.length > 0) {
-        skippedCount++;
-        continue;
+      try {
+        // Skip chunks that already contain embeddings
+        if (Array.isArray(chunk.embedding) && chunk.embedding.length > 0) {
+          successfulEmbeddings++;
+          continue;
+        }
+
+        // Generate embedding using the text content
+        const vector = await generateEmbedding(chunk.content);
+
+        // Save vector embedding back to the database for this specific chunk
+        chunk.embedding = vector;
+        await chunk.save();
+        successfulEmbeddings++;
+      } catch (chunkErr) {
+        logger.error(`[embeddingPipeline] Failed to embed chunk ${chunk._id} (index: ${chunk.chunkIndex}): ${chunkErr.message}`);
+        failedEmbeddings++;
       }
-
-      // Generate embedding using the text content
-      const vector = await generateEmbedding(chunk.content);
-
-      // Save vector embedding back to the database for this specific chunk
-      chunk.embedding = vector;
-      await chunk.save();
-      embeddedCount++;
     }
 
-    // ── 5. Transition status to indexed on success ───────────────────────────
-    doc.status = STATUSES.INDEXED;
+    // ── 5. Transition status on completion ───────────────────────────────────
     doc.processedAt = new Date();
+    if (failedEmbeddings > 0) {
+      doc.status = STATUSES.FAILED;
+      doc.processingError = `Failed to generate embeddings for ${failedEmbeddings} out of ${chunks.length} chunks.`;
+    } else {
+      doc.status = STATUSES.INDEXED;
+      doc.processingError = null;
+    }
     await doc.save();
 
     logger.info(
       `[embeddingPipeline] Pipeline completed for document: ${documentId} | ` +
-      `Total: ${chunks.length} | Embedded: ${embeddedCount} | Skipped: ${skippedCount}`
+      `Total: ${chunks.length} | Success: ${successfulEmbeddings} | Failed: ${failedEmbeddings} | Status: ${doc.status}`
     );
 
     return {
       documentId: doc._id,
-      totalChunks: chunks.length,
-      embeddedCount,
-      skippedCount,
+      totalProcessedChunks: chunks.length,
+      successfulEmbeddings,
+      failedEmbeddings,
       status: doc.status,
     };
 

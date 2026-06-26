@@ -28,6 +28,7 @@ const {
   getDocument,
   processDocument,
   chunkDocument,
+  embedDocument,
 } = require('../controllers/documentController');
 
 const router = express.Router();
@@ -89,6 +90,18 @@ router.post(
   '/:id/chunk',
   authenticate,
   chunkDocument
+);
+
+// ── POST /:id/embed — generate vector embeddings for all document chunks ──────────
+//
+//   Middleware chain:
+//   1. authenticate  — verifies JWT, attaches req.user
+//   2. embedDocument — runs embeddingPipelineService, returns stats
+//
+router.post(
+  '/:id/embed',
+  authenticate,
+  embedDocument
 );
 
 module.exports = router;
