@@ -76,6 +76,17 @@ const RULES = [
       return null;
     },
   },
+  {
+    name: 'GEMINI_API_KEY',
+    required: true,
+    hint: 'Google Gemini API key (e.g. GEMINI_API_KEY=AIzaSy...)',
+    validate: (v) => {
+      if (v.length < 10) {
+        return `GEMINI_API_KEY is too short (${v.length} chars)`;
+      }
+      return null;
+    },
+  },
 ];
 
 // ── Formatter ─────────────────────────────────────────────────────────────────

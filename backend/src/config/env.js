@@ -38,6 +38,9 @@ const env = {
   jwtSecret   : process.env.JWT_SECRET,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
 
+  // Gemini
+  geminiApiKey: process.env.GEMINI_API_KEY,
+
   // Convenience flags
   isDev : (process.env.NODE_ENV || 'development') === 'development',
   isProd: process.env.NODE_ENV === 'production',

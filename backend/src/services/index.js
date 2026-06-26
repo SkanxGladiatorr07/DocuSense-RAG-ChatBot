@@ -17,4 +17,5 @@ module.exports = {
   txtService       : require('./txtService'),
   chunkingService  : require('./chunkingService'),
   chunkStorageService: require('./chunkStorageService'),
+  embeddingService: require('./embeddingService'),
 };
