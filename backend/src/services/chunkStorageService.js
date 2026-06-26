@@ -74,6 +74,7 @@ const storeChunks = async (documentId, chunks) => {
       content: chunk.content,
       wordCount: chunk.wordCount,
       metadata: chunk.metadata || {},
+      embedding: Array.isArray(chunk.embedding) ? chunk.embedding : undefined,
     };
   });
 
