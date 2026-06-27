@@ -16,6 +16,7 @@
 const asyncHandler        = require('../utils/asyncHandler');
 const { successResponse } = require('../utils/ApiResponse');
 const AppError            = require('../utils/AppError');
+const mongoose            = require('mongoose');
 const { retrievalService } = require('../services');
 
 // ── POST /api/v1/search/retrieve ──────────────────────────────────────────────
@@ -78,6 +79,11 @@ const retrieveChunks = asyncHandler(async (req, res) => {
 
   if (minScore !== undefined && (typeof minScore !== 'number' || minScore < 0 || minScore > 1)) {
     throw AppError.badRequest('"minScore" must be a number between 0 and 1.');
+  }
+
+  // ── Optional documentId guard ──────────────────────────────────────────────
+  if (documentId !== undefined && !mongoose.Types.ObjectId.isValid(documentId)) {
+    throw AppError.badRequest('"documentId" must be a valid MongoDB ObjectId.');
   }
 
   // ── Delegate to retrieval service ─────────────────────────────────────────

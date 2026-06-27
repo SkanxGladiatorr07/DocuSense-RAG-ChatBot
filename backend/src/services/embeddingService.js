@@ -100,8 +100,8 @@ const generateEmbedding = async (text, options = {}) => {
       }
 
       throw new AppError(
-        `Gemini Embedding API Failure: ${parsedMsg}`,
-        502 // Bad Gateway since the external service failed
+        502, // Bad Gateway — the external Gemini service failed
+        `Gemini Embedding API Failure: ${parsedMsg}`
       );
     }
 
@@ -128,8 +128,8 @@ const generateEmbedding = async (text, options = {}) => {
     // Capture connection/timeout/network errors
     logger.error(`[embeddingService] Network or parsing failure: ${err.message}`);
     throw new AppError(
-      `Failed to connect to Gemini Embedding API: ${err.message}`,
-      502
+      502,
+      `Failed to connect to Gemini Embedding API: ${err.message}`
     );
   }
 };

@@ -63,13 +63,14 @@ const runEmbeddingPipeline = async (documentId, userId) => {
 
     let successfulEmbeddings = 0;
     let failedEmbeddings = 0;
+    let skippedCount = 0;
 
     // ── 4. Generate & save embeddings ────────────────────────────────────────
     for (const chunk of chunks) {
       try {
         // Skip chunks that already contain embeddings
         if (Array.isArray(chunk.embedding) && chunk.embedding.length > 0) {
-          successfulEmbeddings++;
+          skippedCount++;
           continue;
         }
 
@@ -99,13 +100,14 @@ const runEmbeddingPipeline = async (documentId, userId) => {
 
     logger.info(
       `[embeddingPipeline] Pipeline completed for document: ${documentId} | ` +
-      `Total: ${chunks.length} | Success: ${successfulEmbeddings} | Failed: ${failedEmbeddings} | Status: ${doc.status}`
+      `Total: ${chunks.length} | Success: ${successfulEmbeddings} | Skipped: ${skippedCount} | Failed: ${failedEmbeddings} | Status: ${doc.status}`
     );
 
     return {
       documentId: doc._id,
       totalProcessedChunks: chunks.length,
       successfulEmbeddings,
+      skippedCount,
       failedEmbeddings,
       status: doc.status,
     };
