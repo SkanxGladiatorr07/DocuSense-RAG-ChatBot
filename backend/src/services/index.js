@@ -19,4 +19,5 @@ module.exports = {
   chunkStorageService: require('./chunkStorageService'),
   embeddingService: require('./embeddingService'),
   embeddingPipelineService: require('./embeddingPipelineService'),
+  queryEmbeddingService: require('./queryEmbeddingService'),
 };
