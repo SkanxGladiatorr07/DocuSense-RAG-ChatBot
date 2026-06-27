@@ -20,4 +20,5 @@ module.exports = {
   embeddingService: require('./embeddingService'),
   embeddingPipelineService: require('./embeddingPipelineService'),
   queryEmbeddingService: require('./queryEmbeddingService'),
+  similaritySearchService: require('./similaritySearchService'),
 };
