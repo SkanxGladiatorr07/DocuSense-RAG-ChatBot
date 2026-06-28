@@ -22,4 +22,5 @@ module.exports = {
   queryEmbeddingService: require('./queryEmbeddingService'),
   similaritySearchService: require('./similaritySearchService'),
   retrievalService: require('./retrievalService'),
+  llmService: require('./llmService'),
 };
