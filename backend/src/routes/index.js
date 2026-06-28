@@ -4,8 +4,7 @@ const authRoutes     = require('./authRoutes');
 const testRoutes     = require('./testRoutes');
 const documentRoutes = require('./documentRoutes');
 const searchRoutes   = require('./searchRoutes');
-// Future route imports go here:
-// const chatRoutes = require('./chatRoutes');
+const chatRoutes     = require('./chatRoutes');
 
 const router = express.Router();
 
@@ -24,8 +23,9 @@ router.use('/documents', documentRoutes);
 // ── Semantic Search ───────────────────────────────────────────────────────────
 router.use('/search', searchRoutes);
 
-// ── Feature Routes (uncomment as you build them) ──────────────────────────────
-// router.use('/chat', chatRoutes);
+// ── Chat (RAG Q&A) ────────────────────────────────────────────────────────────
+router.use('/chat', chatRoutes);
 
 module.exports = router;
+
 

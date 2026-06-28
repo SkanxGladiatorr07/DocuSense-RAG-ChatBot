@@ -46,6 +46,12 @@ app.use('/api/v1', routes);
 //   POST /api/documents/:id/process     (unversioned alias — for compatibility)
 app.use('/api/documents', require('./routes/documentRoutes'));
 
+// ── Version-agnostic alias: /api/chat ─────────────────────────────────────────
+// Reachable at both:
+//   POST /api/v1/chat/ask  (versioned — preferred)
+//   POST /api/chat/ask     (unversioned alias)
+app.use('/api/chat', require('./routes/chatRoutes'));
+
 // ── Health check at root (as per spec) ───────────────────────────────────────
 // Also reachable via GET /api/v1/ through the router above
 app.get('/', (req, res) => {
