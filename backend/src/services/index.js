@@ -24,4 +24,5 @@ module.exports = {
   retrievalService: require('./retrievalService'),
   llmService: require('./llmService'),
   promptBuilderService: require('./promptBuilderService'),
+  ragService: require('./ragService'),
 };
