@@ -23,4 +23,5 @@ module.exports = {
   similaritySearchService: require('./similaritySearchService'),
   retrievalService: require('./retrievalService'),
   llmService: require('./llmService'),
+  promptBuilderService: require('./promptBuilderService'),
 };
