@@ -10,8 +10,9 @@
  */
 
 module.exports = {
-  User    : require('./User'),
-  Document: require('./Document'),
-  Chunk   : require('./Chunk'),
+  User        : require('./User'),
+  Document    : require('./Document'),
+  Chunk       : require('./Chunk'),
+  Conversation: require('./Conversation'),
 };
 
