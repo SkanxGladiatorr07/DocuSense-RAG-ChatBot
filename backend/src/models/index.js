@@ -14,5 +14,6 @@ module.exports = {
   Document    : require('./Document'),
   Chunk       : require('./Chunk'),
   Conversation: require('./Conversation'),
+  Message     : require('./Message'),
 };
 
