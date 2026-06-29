@@ -5,6 +5,7 @@ const testRoutes     = require('./testRoutes');
 const documentRoutes = require('./documentRoutes');
 const searchRoutes   = require('./searchRoutes');
 const chatRoutes     = require('./chatRoutes');
+const conversationRoutes = require('./conversationRoutes');
 
 const router = express.Router();
 
@@ -26,6 +27,7 @@ router.use('/search', searchRoutes);
 // ── Chat (RAG Q&A) ────────────────────────────────────────────────────────────
 router.use('/chat', chatRoutes);
 
+// ── Conversations ─────────────────────────────────────────────
+router.use('/conversations', conversationRoutes);
+
 module.exports = router;
-
-
