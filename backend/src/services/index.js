@@ -25,4 +25,5 @@ module.exports = {
   llmService: require('./llmService'),
   promptBuilderService: require('./promptBuilderService'),
   ragService: require('./ragService'),
+  conversationService: require('./conversationService'),
 };
