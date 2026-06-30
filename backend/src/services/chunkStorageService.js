@@ -17,11 +17,14 @@ const logger = require('../utils/logger');
  * are deleted before saving the new ones (ensuring idempotent reprocessing).
  *
  * @param {string|mongoose.Types.ObjectId} documentId - The target document ID
- * @param {Array<{ chunkIndex: number, content: string, wordCount: number, metadata?: object }>} chunks - Array of chunk objects
+ * @param {Array<{ chunkIndex: number, content: string, wordCount: number, metadata?: object, embedding?: number[] }>} chunks
+ * @param {object} [documentMeta={}] - Optional source provenance snapshot.
+ * @param {string} [documentMeta.sourceDocumentName] - Document.originalName at chunk time.
+ * @param {Date}   [documentMeta.uploadedAt]          - Document.uploadDate at chunk time.
  * @returns {Promise<import('mongoose').Document[]>} The newly inserted Chunk documents
  * @throws {AppError} 400 - If parameters are invalid or MongoDB validation fails
  */
-const storeChunks = async (documentId, chunks) => {
+const storeChunks = async (documentId, chunks, documentMeta = {}) => {
   // ── 1. Validate Inputs ─────────────────────────────────────────────────────
   if (!documentId) {
     throw AppError.badRequest('chunkStorageService.storeChunks: documentId is required.');
@@ -70,11 +73,17 @@ const storeChunks = async (documentId, chunks) => {
 
     return {
       documentId,
-      chunkIndex: chunk.chunkIndex,
-      content: chunk.content,
-      wordCount: chunk.wordCount,
-      metadata: chunk.metadata || {},
-      embedding: Array.isArray(chunk.embedding) ? chunk.embedding : undefined,
+      chunkIndex : chunk.chunkIndex,
+      content    : chunk.content,
+      wordCount  : chunk.wordCount,
+      metadata   : chunk.metadata || {},
+      embedding  : Array.isArray(chunk.embedding) ? chunk.embedding : undefined,
+      // ── Source provenance (from documentMeta — null-safe for old callers) ──
+      sourceDocumentName: documentMeta.sourceDocumentName ?? null,
+      uploadedAt        : documentMeta.uploadedAt         ?? null,
+      // pageNumber: pull from chunk.metadata.pageNumber if the extractor set it,
+      // or from chunk.pageNumber if the chunking layer passes it explicitly.
+      pageNumber: chunk.pageNumber ?? chunk.metadata?.pageNumber ?? null,
     };
   });
 

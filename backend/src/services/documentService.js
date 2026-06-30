@@ -295,8 +295,11 @@ const chunkDocument = async (documentId, userId) => {
     );
   }
 
-  // 4. Save Chunks to MongoDB
-  await chunkStorageService.storeChunks(documentId, chunks);
+  // 4. Save Chunks to MongoDB — include provenance snapshot for citation support
+  await chunkStorageService.storeChunks(documentId, chunks, {
+    sourceDocumentName: doc.originalName   ?? null,
+    uploadedAt        : doc.uploadDate     ?? null,
+  });
 
   // 5. Calculate average chunk size (words)
   const totalChunks = chunks.length;
