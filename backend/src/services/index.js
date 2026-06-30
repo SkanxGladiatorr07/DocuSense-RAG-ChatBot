@@ -26,4 +26,5 @@ module.exports = {
   promptBuilderService: require('./promptBuilderService'),
   ragService: require('./ragService'),
   conversationService: require('./conversationService'),
+  citationBuilderService: require('./citationBuilderService'),
 };

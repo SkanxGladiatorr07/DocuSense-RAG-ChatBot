@@ -149,8 +149,10 @@ const askQuestion = asyncHandler(async (req, res) => {
       promptTokens: result.promptTokens,
       outputTokens: result.outputTokens,
     },
-    sources: result.sources,
-    chunks : result.chunks,
+    sources    : result.sources,
+    citations  : result.citations,
+    references : result.references,
+    chunks     : result.chunks,
   });
 });
 

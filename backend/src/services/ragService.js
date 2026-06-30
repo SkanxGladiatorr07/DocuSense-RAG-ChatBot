@@ -51,12 +51,31 @@
  *       uploadDate  : Date,
  *       status      : string,
  *     }>,
+ *     citations    : Array<{          // per-chunk inline citations
+ *       citationNumber : number,
+ *       chunkId        : string,
+ *       chunkIndex     : number,
+ *       documentId     : string,
+ *       documentName   : string,
+ *       pageNumber     : number|null,
+ *       score          : number,
+ *     }>,
+ *     references   : Array<{          // de-duplicated bibliography entries
+ *       referenceNumber : number,
+ *       documentId      : string,
+ *       documentName    : string,
+ *       fileType        : string|null,
+ *       uploadedAt      : Date|null,
+ *       citedChunks     : Array<object>,
+ *       pageNumbers     : number[],
+ *     }>,
  *   }
  */
 
 const { retrieve }         = require('./retrievalService');
 const { buildRagPrompt }   = require('./promptBuilderService');
 const { generate }         = require('./llmService');
+const { buildCitations }   = require('./citationBuilderService');
 const AppError             = require('../utils/AppError');
 const logger               = require('../utils/logger');
 
@@ -121,7 +140,10 @@ const ask = async (question, options = {}) => {
     temperature    : options.temperature     ?? undefined,
   });
 
-  // ── 5. Build de-duplicated sources list ────────────────────────────────────
+  // ── 5. Build citations ──────────────────────────────────────────────────
+  const { citations, references } = buildCitations(chunks);
+
+  // ── 6. Build de-duplicated sources list ────────────────────────────────
   // One entry per unique parent document, preserving first-occurrence order.
   const seenDocIds = new Set();
   const sources = chunks.reduce((acc, chunk) => {
@@ -137,10 +159,11 @@ const ask = async (question, options = {}) => {
     `[ragService] Pipeline complete. ` +
     `Answer length: ${generation.text.length} chars | ` +
     `Sources: ${sources.length} document(s) | ` +
+    `Citations: ${citations.length} | ` +
     `Finish: ${generation.finishReason}`
   );
 
-  // ── 6. Return shaped result ────────────────────────────────────────────────
+  // ── 7. Return shaped result ───────────────────────────────────────────────
   return {
     answer      : generation.text,
     question    : normalisedQuestion,
@@ -150,6 +173,8 @@ const ask = async (question, options = {}) => {
     finishReason: generation.finishReason,
     chunks,
     sources,
+    citations,
+    references,
   };
 };
 
