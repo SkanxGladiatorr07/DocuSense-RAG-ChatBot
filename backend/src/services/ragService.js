@@ -19,7 +19,10 @@
  *     ▼ llmService.generate()
  *   generated answer
  *     │
- *     ▼ shape & return
+ *     ▼ citationBuilderService.buildCitations()
+ *   citations + references
+ *     │
+ *     ▼ confidence computation (in-process, zero cost)
  *   RagResult
  *
  *   Public API
@@ -35,14 +38,23 @@
  *     promptTokens : number,
  *     outputTokens : number,
  *     finishReason : string,
+ *     confidence   : {                // retrieval quality indicator
+ *       averageScore    : number,     // mean cosine similarity across chunks
+ *       topScore        : number,     // highest individual chunk score
+ *       lowestScore     : number,     // lowest individual chunk score
+ *       retrievedChunks : number,     // total chunks used for context
+ *     } | null,                       // null when no chunks retrieved
  *     chunks       : Array<{          // top-K retrieved chunks (with scores)
- *       chunkId    : string,
- *       chunkIndex : number,
- *       content    : string,
- *       score      : number,
- *       wordCount  : number,
- *       metadata   : object,
- *       document   : object,
+ *       chunkId            : string,
+ *       chunkIndex         : number,
+ *       content            : string,
+ *       score              : number,
+ *       wordCount          : number,
+ *       metadata           : object,
+ *       sourceDocumentName : string|null,
+ *       pageNumber         : number|null,
+ *       uploadedAt         : Date|null,
+ *       document           : object,
  *     }>,
  *     sources      : Array<{          // de-duplicated document references
  *       documentId  : string,
@@ -86,13 +98,13 @@ const logger               = require('../utils/logger');
  *
  * @param {string} question          - Raw natural language question from the user.
  * @param {object} [options={}]
- * @param {number} [options.topK=5]         - Max chunks to retrieve.
- * @param {string} [options.documentId]     - Restrict retrieval to one document.
- * @param {number} [options.minScore=0]     - Minimum chunk similarity threshold.
- * @param {string} [options.template]       - Prompt template ('standard'|'concise'|'detailed').
- * @param {string} [options.model]          - Override the LLM model.
- * @param {number} [options.maxOutputTokens]- Override the LLM token ceiling.
- * @param {number} [options.temperature]    - Override the LLM temperature.
+ * @param {number} [options.topK=5]           - Max chunks to retrieve.
+ * @param {string} [options.documentId]       - Restrict retrieval to one document.
+ * @param {number} [options.minScore=0]       - Minimum chunk similarity threshold.
+ * @param {string} [options.template]         - Prompt template ('standard'|'concise'|'detailed').
+ * @param {string} [options.model]            - Override the LLM model.
+ * @param {number} [options.maxOutputTokens]  - Override the LLM token ceiling.
+ * @param {number} [options.temperature]      - Override the LLM temperature.
  *
  * @returns {Promise<RagResult>}
  *
@@ -140,10 +152,10 @@ const ask = async (question, options = {}) => {
     temperature    : options.temperature     ?? undefined,
   });
 
-  // ── 5. Build citations ──────────────────────────────────────────────────
+  // ── 5. Build citations ────────────────────────────────────────────────────
   const { citations, references } = buildCitations(chunks);
 
-  // ── 6. Build de-duplicated sources list ────────────────────────────────
+  // ── 6. Build de-duplicated sources list ───────────────────────────────────
   // One entry per unique parent document, preserving first-occurrence order.
   const seenDocIds = new Set();
   const sources = chunks.reduce((acc, chunk) => {
@@ -155,15 +167,36 @@ const ask = async (question, options = {}) => {
     return acc;
   }, []);
 
+  // ── 7. Compute confidence indicator ───────────────────────────────────────
+  // Derived purely from retrieved chunk similarity scores — zero extra cost.
+  // averageScore reflects the overall quality of context used for this answer.
+  let confidence = null;
+  if (chunks.length > 0) {
+    const scores = chunks
+      .map((c) => c.score)
+      .filter((s) => typeof s === 'number' && !Number.isNaN(s));
+
+    if (scores.length > 0) {
+      const sum = scores.reduce((acc, s) => acc + s, 0);
+      confidence = {
+        averageScore   : parseFloat((sum / scores.length).toFixed(6)),
+        topScore       : parseFloat(Math.max(...scores).toFixed(6)),
+        lowestScore    : parseFloat(Math.min(...scores).toFixed(6)),
+        retrievedChunks: chunks.length,
+      };
+    }
+  }
+
   logger.info(
     `[ragService] Pipeline complete. ` +
     `Answer length: ${generation.text.length} chars | ` +
     `Sources: ${sources.length} document(s) | ` +
     `Citations: ${citations.length} | ` +
+    `Confidence (avg): ${confidence?.averageScore ?? 'N/A'} | ` +
     `Finish: ${generation.finishReason}`
   );
 
-  // ── 7. Return shaped result ───────────────────────────────────────────────
+  // ── 8. Return shaped result ────────────────────────────────────────────────
   return {
     answer      : generation.text,
     question    : normalisedQuestion,
@@ -171,6 +204,7 @@ const ask = async (question, options = {}) => {
     promptTokens: generation.promptTokens,
     outputTokens: generation.outputTokens,
     finishReason: generation.finishReason,
+    confidence,
     chunks,
     sources,
     citations,

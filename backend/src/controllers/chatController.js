@@ -44,29 +44,27 @@ const { ragService, promptBuilderService } = require('../services');
  *     "question"     : "What is the leave policy?",
  *     "model"        : "gemini-2.0-flash",
  *     "finishReason" : "STOP",
+ *     "confidence": {
+ *       "averageScore"    : 0.856123,
+ *       "topScore"        : 0.923451,
+ *       "lowestScore"     : 0.743210,
+ *       "retrievedChunks" : 5
+ *     },
  *     "usage": {
  *       "promptTokens" : 312,
  *       "outputTokens" : 148
  *     },
+ *     "citations": [
+ *       { "citationNumber": 1, "documentName": "HR_Policy.pdf", "pageNumber": 4, "score": 0.923 }
+ *     ],
+ *     "references": [
+ *       { "referenceNumber": 1, "documentName": "HR_Policy.pdf", "pageNumbers": [4, 7] }
+ *     ],
  *     "sources": [
- *       {
- *         "documentId"  : "64f...",
- *         "originalName": "HR_Policy_2024.pdf",
- *         "fileType"    : "application/pdf",
- *         "uploadDate"  : "2026-06-25T...",
- *         "status"      : "indexed"
- *       }
+ *       { "documentId": "64f...", "originalName": "HR_Policy_2024.pdf", "status": "indexed" }
  *     ],
  *     "chunks": [
- *       {
- *         "chunkId"    : "64f...",
- *         "chunkIndex" : 2,
- *         "content"    : "The leave policy states...",
- *         "score"      : 0.923451,
- *         "wordCount"  : 487,
- *         "metadata"   : {},
- *         "document"   : { ... }
- *       }
+ *       { "chunkId": "64f...", "chunkIndex": 2, "content": "...", "score": 0.923451 }
  *     ]
  *   }
  * }
@@ -145,6 +143,7 @@ const askQuestion = asyncHandler(async (req, res) => {
     question    : result.question,
     model       : result.model,
     finishReason: result.finishReason,
+    confidence  : result.confidence,
     usage: {
       promptTokens: result.promptTokens,
       outputTokens: result.outputTokens,
