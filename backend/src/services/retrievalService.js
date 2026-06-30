@@ -20,13 +20,16 @@
  *     question : string,                   // normalised question echoed back
  *     topK     : number,                   // number of chunks returned
  *     results  : Array<{
- *       chunkId    : string,
- *       chunkIndex : number,
- *       content    : string,
- *       score      : number,               // cosine similarity (0 – 1)
- *       wordCount  : number,
- *       metadata   : object,               // chunk-level metadata
- *       document   : {                     // parent document metadata
+ *       chunkId            : string,
+ *       chunkIndex         : number,
+ *       content            : string,
+ *       score              : number,        // cosine similarity (0 – 1)
+ *       wordCount          : number,
+ *       metadata           : object,
+ *       sourceDocumentName : string|null,   // from chunk snapshot (preferred)
+ *       pageNumber         : number|null,   // from chunk snapshot (null = N/A)
+ *       uploadedAt         : Date|null,     // from chunk snapshot
+ *       document           : {              // parent document metadata
  *         documentId  : string,
  *         originalName: string,
  *         fileType    : string,
@@ -117,21 +120,34 @@ const retrieve = async (question, options = {}) => {
   );
 
   // ── 5. Merge chunk results with document metadata ─────────────────────────
-  const enrichedResults = searchResults.map((r) => ({
-    chunkId   : r.chunkId,
-    chunkIndex: r.chunkIndex,
-    content   : r.content,
-    score     : r.score,
-    wordCount : r.wordCount,
-    metadata  : r.metadata,
-    document  : docMap[r.documentId] ?? {
+  const enrichedResults = searchResults.map((r) => {
+    const docMeta = docMap[r.documentId] ?? {
       documentId  : r.documentId,
       originalName: 'Unknown',
       fileType    : 'unknown',
       uploadDate  : null,
       status      : 'unknown',
-    },
-  }));
+    };
+
+    return {
+      chunkId   : r.chunkId,
+      chunkIndex: r.chunkIndex,
+      content   : r.content,
+      score     : r.score,
+      wordCount : r.wordCount,
+      metadata  : r.metadata,
+
+      // ── Provenance fields ────────────────────────────────────────────────
+      // Prefer the chunk's own snapshot over the live Document record so that
+      // citations remain accurate even if the document was later renamed.
+      sourceDocumentName: r.sourceDocumentName ?? docMeta.originalName ?? null,
+      pageNumber        : r.pageNumber         ?? null,
+      uploadedAt        : r.uploadedAt         ?? docMeta.uploadDate   ?? null,
+
+      // ── Live document metadata ───────────────────────────────────────────────
+      document: docMeta,
+    };
+  });
 
   logger.info(
     `[retrievalService] Retrieved ${enrichedResults.length} chunk(s) ` +

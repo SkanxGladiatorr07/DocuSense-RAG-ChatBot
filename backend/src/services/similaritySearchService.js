@@ -13,13 +13,16 @@
  *   SearchResult shape
  *   ──────────────────
  *   {
- *     chunkId    : string,        // Chunk._id
- *     documentId : string,        // parent Document._id
- *     chunkIndex : number,        // position in source document
- *     content    : string,        // raw text of the chunk
- *     score      : number,        // cosine similarity (0 – 1)
- *     wordCount  : number,
- *     metadata   : object,
+ *     chunkId            : string,        // Chunk._id
+ *     documentId         : string,        // parent Document._id
+ *     chunkIndex         : number,        // position in source document
+ *     content            : string,        // raw text of the chunk
+ *     score              : number,        // cosine similarity (0 – 1)
+ *     wordCount          : number,
+ *     metadata           : object,
+ *     sourceDocumentName : string|null,   // snapshot of Document.originalName
+ *     pageNumber         : number|null,   // page hint from extractor (null = N/A)
+ *     uploadedAt         : Date|null,     // snapshot of Document.uploadDate
  *   }
  */
 
@@ -89,7 +92,10 @@ const mongoAdapter = {
       ...filter,
       embedding: { $exists: true, $not: { $size: 0 } },
     })
-      .select('documentId chunkIndex content wordCount metadata embedding')
+      .select(
+        'documentId chunkIndex content wordCount metadata embedding ' +
+        'sourceDocumentName pageNumber uploadedAt'
+      )
       .lean();
   },
 };
@@ -106,13 +112,16 @@ const mongoAdapter = {
  * @param {number}  [options.minScore=0]       - Minimum similarity threshold (0–1).
  *
  * @returns {Promise<Array<{
- *   chunkId   : string,
- *   documentId: string,
- *   chunkIndex: number,
- *   content   : string,
- *   score     : number,
- *   wordCount : number,
- *   metadata  : object,
+ *   chunkId            : string,
+ *   documentId         : string,
+ *   chunkIndex         : number,
+ *   content            : string,
+ *   score              : number,
+ *   wordCount          : number,
+ *   metadata           : object,
+ *   sourceDocumentName : string|null,
+ *   pageNumber         : number|null,
+ *   uploadedAt         : Date|null,
  * }>>} Top-K results sorted descending by cosine similarity score.
  *
  * @throws {AppError} 400 – invalid queryVector
@@ -166,13 +175,17 @@ const findSimilarChunks = async (queryVector, options = {}) => {
       }
 
       return {
-        chunkId   : chunk._id.toString(),
-        documentId: chunk.documentId.toString(),
-        chunkIndex: chunk.chunkIndex,
-        content   : chunk.content,
-        wordCount : chunk.wordCount,
-        metadata  : chunk.metadata,
-        score     : parseFloat(cosineSimilarity(queryVector, chunk.embedding).toFixed(6)),
+        chunkId            : chunk._id.toString(),
+        documentId         : chunk.documentId.toString(),
+        chunkIndex         : chunk.chunkIndex,
+        content            : chunk.content,
+        wordCount          : chunk.wordCount,
+        metadata           : chunk.metadata,
+        score              : parseFloat(cosineSimilarity(queryVector, chunk.embedding).toFixed(6)),
+        // ── Provenance fields (null for pre-extension chunks) ──
+        sourceDocumentName : chunk.sourceDocumentName ?? null,
+        pageNumber         : chunk.pageNumber         ?? null,
+        uploadedAt         : chunk.uploadedAt         ?? null,
       };
     })
     .filter((r) => r !== null && r.score >= minScore);
