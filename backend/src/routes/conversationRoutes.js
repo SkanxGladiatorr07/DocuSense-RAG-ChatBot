@@ -24,12 +24,17 @@ const {
   getConversationWithHistory,
   updateTitle,
   archiveConversation,
+  getConversationAnalytics,
 } = require('../controllers/conversationController');
 
 const router = express.Router();
 
 // All conversation routes require a valid JWT
 router.use(authenticate);
+
+// ── Analytics route ───────────────────────────────────────────────────────────
+// Must be defined BEFORE GET /:id so it doesn't get treated as an ID.
+router.get('/analytics', getConversationAnalytics);
 
 // ── Collection routes ─────────────────────────────────────────────────────────
 router.post('/',   createConversation);   // POST   /

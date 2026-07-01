@@ -234,6 +234,114 @@ const getStats = async () => {
   }
 };
 
+// ── getConversationAnalytics ──────────────────────────────────────────────────
+
+/**
+ * Compute conversation-specific analytics across all users.
+ *
+ * @returns {Promise<{
+ *   totalConversations: number,
+ *   totalQuestions: number,
+ *   averageMessagesPerConversation: number,
+ *   mostActiveUsers: Array<{
+ *     userId: string,
+ *     name: string,
+ *     email: string,
+ *     messageCount: number
+ *   }>,
+ *   recentActivity: Array<{
+ *     messageId: string,
+ *     question: string,
+ *     answer: string,
+ *     createdAt: Date,
+ *     userName: string,
+ *     conversationTitle: string
+ *   }>
+ * }>}
+ */
+const getConversationAnalytics = async () => {
+  logger.info('[analyticsService] Computing conversation statistics…');
+
+  try {
+    const [
+      totalConvs,
+      totalMsgs,
+      activeUsersData,
+      recentMsgs
+    ] = await Promise.all([
+      // 1. Total conversations
+      Conversation.countDocuments(),
+
+      // 2. Total questions (total messages)
+      Message.countDocuments(),
+
+      // 3. Most active users (top 5 by message/question count)
+      Message.aggregate([
+        {
+          $group: {
+            _id: '$userId',
+            messageCount: { $sum: 1 }
+          }
+        },
+        { $sort: { messageCount: -1 } },
+        { $limit: 5 },
+        {
+          $lookup: {
+            from: 'users',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'user'
+          }
+        },
+        { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
+        {
+          $project: {
+            _id: 0,
+            userId: '$_id',
+            name: { $ifNull: ['$user.name', 'Unknown User'] },
+            email: { $ifNull: ['$user.email', ''] },
+            messageCount: 1
+          }
+        }
+      ]),
+
+      // 4. Recent activity (latest 5 messages, populated with User and Conversation)
+      Message.find({})
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .populate('userId', 'name email')
+        .populate('conversationId', 'title')
+        .lean()
+    ]);
+
+    const averageMessages = totalConvs > 0 ? parseFloat((totalMsgs / totalConvs).toFixed(2)) : 0;
+
+    const formattedRecentActivity = recentMsgs.map((msg) => ({
+      messageId: msg._id.toString(),
+      question: msg.question,
+      answer: msg.answer,
+      createdAt: msg.createdAt,
+      userName: msg.userId?.name || 'Unknown User',
+      conversationTitle: msg.conversationId?.title || 'Unknown Conversation',
+    }));
+
+    return {
+      totalConversations: totalConvs,
+      totalQuestions: totalMsgs,
+      averageMessagesPerConversation: averageMessages,
+      mostActiveUsers: activeUsersData,
+      recentActivity: formattedRecentActivity
+    };
+
+  } catch (err) {
+    logger.error(`[analyticsService.getConversationAnalytics] Failed: ${err.message}`);
+    throw AppError.internal('Failed to retrieve conversation analytics.');
+  }
+};
+
 // ── Exports ───────────────────────────────────────────────────────────────────
 
-module.exports = { getStats };
+module.exports = {
+  getStats,
+  getConversationAnalytics
+};

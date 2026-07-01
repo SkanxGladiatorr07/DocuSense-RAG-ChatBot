@@ -21,7 +21,7 @@ const asyncHandler           = require('../utils/asyncHandler');
 const { successResponse }    = require('../utils/ApiResponse');
 const AppError               = require('../utils/AppError');
 const mongoose               = require('mongoose');
-const { conversationService } = require('../services');
+const { conversationService, analyticsService } = require('../services');
 
 // ── Shared helper ─────────────────────────────────────────────────────────────
 
@@ -231,6 +231,37 @@ const archiveConversation = asyncHandler(async (req, res) => {
   return successResponse(res, 200, 'Conversation archived successfully.', { conversation });
 });
 
+// ── GET /api/v1/conversations/analytics ───────────────────────────────────────
+
+/**
+ * Retrieve conversation-specific analytics across all users.
+ *
+ * Success response (200):
+ * {
+ *   "success": true,
+ *   "message": "Conversation analytics fetched successfully.",
+ *   "data": {
+ *     "totalConversations": 10,
+ *     "totalQuestions": 45,
+ *     "averageMessagesPerConversation": 4.5,
+ *     "mostActiveUsers": [
+ *       { "userId": "...", "name": "...", "email": "...", "messageCount": 20 }
+ *     ],
+ *     "recentActivity": [
+ *       { "messageId": "...", "question": "...", "answer": "...", "createdAt": "...", "userName": "...", "conversationTitle": "..." }
+ *     ]
+ *   }
+ * }
+ *
+ * @route  GET /api/v1/conversations/analytics
+ * @access Private
+ */
+const getConversationAnalytics = asyncHandler(async (req, res) => {
+  const analytics = await analyticsService.getConversationAnalytics();
+
+  return successResponse(res, 200, 'Conversation analytics fetched successfully.', analytics);
+});
+
 // ── Exports ───────────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -239,4 +270,5 @@ module.exports = {
   getConversationWithHistory,
   updateTitle,
   archiveConversation,
+  getConversationAnalytics,
 };
