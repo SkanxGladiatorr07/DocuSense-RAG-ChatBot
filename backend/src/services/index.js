@@ -27,4 +27,5 @@ module.exports = {
   ragService: require('./ragService'),
   conversationService: require('./conversationService'),
   citationBuilderService: require('./citationBuilderService'),
+  analyticsService: require('./analyticsService'),
 };
