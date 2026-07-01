@@ -288,6 +288,33 @@ const embedDocument = asyncHandler(async (req, res) => {
   return successResponse(res, 200, 'Document embeddings generated successfully.', result);
 });
 
+// ── GET /api/v1/documents/analytics ───────────────────────────────────────────
+
+/**
+ * Retrieve document-specific analytics for the authenticated user.
+ *
+ * Success response (200):
+ * {
+ *   "success": true,
+ *   "message": "Document analytics fetched successfully.",
+ *   "data": {
+ *     "totalDocuments": 5,
+ *     "documentsByStatus": { "uploaded": 1, "processing": 0, "indexed": 3, "failed": 1 },
+ *     "averageChunksPerDocument": 12.4,
+ *     "largestDocument": { ... },
+ *     "latestUploadedDocuments": [ ... ]
+ *   }
+ * }
+ *
+ * @route  GET /api/v1/documents/analytics
+ * @access Private
+ */
+const getDocumentAnalytics = asyncHandler(async (req, res) => {
+  const analytics = await documentService.getDocumentAnalytics(req.user._id);
+
+  return successResponse(res, 200, 'Document analytics fetched successfully.', analytics);
+});
+
 // ── Exports ───────────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -297,4 +324,5 @@ module.exports = {
   processDocument,
   chunkDocument,
   embedDocument,
+  getDocumentAnalytics,
 };

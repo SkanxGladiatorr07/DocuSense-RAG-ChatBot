@@ -29,6 +29,7 @@ const {
   processDocument,
   chunkDocument,
   embedDocument,
+  getDocumentAnalytics,
 } = require('../controllers/documentController');
 
 const router = express.Router();
@@ -45,6 +46,16 @@ router.post(
   authenticate,
   uploadSingle('document'),
   uploadDocument
+);
+
+// ── GET /analytics — retrieve document-specific analytics for the user ────────
+//
+//   Must be defined BEFORE GET /:id so it doesn't get treated as an ID.
+//
+router.get(
+  '/analytics',
+  authenticate,
+  getDocumentAnalytics
 );
 
 // ── GET / — list the caller's documents (paginated, newest first) ─────────────

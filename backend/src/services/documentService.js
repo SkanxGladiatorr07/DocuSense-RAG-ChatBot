@@ -22,8 +22,9 @@
  */
 
 const path = require('path');
+const mongoose = require('mongoose');
 
-const { Document }      = require('../models');
+const { Document, Chunk } = require('../models');
 const AppError          = require('../utils/AppError');
 const logger            = require('../utils/logger');
 const processingService = require('./processingService');
@@ -313,6 +314,116 @@ const chunkDocument = async (documentId, userId) => {
   };
 };
 
+// ── getDocumentAnalytics ───────────────────────────────────────────────────────
+
+/**
+ * Compute document-specific analytics for an authenticated user.
+ *
+ * @param {string} userId - The authenticated user's ID
+ * @returns {Promise<{
+ *   totalDocuments: number,
+ *   documentsByStatus: Record<string, number>,
+ *   averageChunksPerDocument: number,
+ *   largestDocument: object|null,
+ *   latestUploadedDocuments: object[]
+ * }>}
+ */
+const getDocumentAnalytics = async (userId) => {
+  if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+    throw AppError.badRequest('documentService.getDocumentAnalytics: invalid or missing userId.');
+  }
+
+  const userObjectId = new mongoose.Types.ObjectId(userId);
+
+  try {
+    const [
+      totalDocs,
+      statusCounts,
+      avgChunksData,
+      largestDoc,
+      latestDocs
+    ] = await Promise.all([
+      // 1. Total uploaded documents
+      Document.countDocuments({ uploadedBy: userObjectId }),
+
+      // 2. Documents by status (Mongoose aggregation)
+      Document.aggregate([
+        { $match: { uploadedBy: userObjectId } },
+        { $group: { _id: '$status', count: { $sum: 1 } } }
+      ]),
+
+      // 3. Average chunks per document (Mongoose aggregation with $lookup)
+      Document.aggregate([
+        { $match: { uploadedBy: userObjectId } },
+        {
+          $lookup: {
+            from: 'chunks',
+            localField: '_id',
+            foreignField: 'documentId',
+            as: 'chunks'
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            totalDocs: { $sum: 1 },
+            totalChunks: { $sum: { $size: '$chunks' } }
+          }
+        },
+        {
+          $project: {
+            avgChunks: {
+              $cond: [
+                { $eq: ['$totalDocs', 0] },
+                0,
+                { $divide: ['$totalChunks', '$totalDocs'] }
+              ]
+            }
+          }
+        }
+      ]),
+
+      // 4. Largest document (by fileSize)
+      Document.findOne({ uploadedBy: userObjectId })
+        .sort({ fileSize: -1 })
+        .select('_id fileName originalName fileType fileSize uploadDate status')
+        .lean(),
+
+      // 5. Latest uploaded documents (limit to 5)
+      Document.find({ uploadedBy: userObjectId })
+        .sort({ uploadDate: -1 })
+        .limit(5)
+        .select('_id fileName originalName fileType fileSize uploadDate status')
+        .lean()
+    ]);
+
+    // Format documents by status count mapping
+    const docStatuses = ['uploaded', 'processing', 'indexed', 'failed'];
+    const byStatus = Object.fromEntries(docStatuses.map(s => [s, 0]));
+    
+    statusCounts.forEach(bucket => {
+      const status = bucket._id;
+      if (status) {
+        byStatus[status] = bucket.count;
+      }
+    });
+
+    const averageChunks = avgChunksData.length > 0 ? parseFloat(avgChunksData[0].avgChunks.toFixed(2)) : 0;
+
+    return {
+      totalDocuments: totalDocs,
+      documentsByStatus: byStatus,
+      averageChunksPerDocument: averageChunks,
+      largestDocument: largestDoc || null,
+      latestUploadedDocuments: latestDocs
+    };
+
+  } catch (err) {
+    logger.error(`[documentService.getDocumentAnalytics] Failed to compute doc analytics: ${err.message}`);
+    throw AppError.internal('Failed to retrieve document analytics.');
+  }
+};
+
 // ── Exports ────────────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -321,4 +432,5 @@ module.exports = {
   getDocumentById,
   processDocumentText,
   chunkDocument,
+  getDocumentAnalytics,
 };
