@@ -6,6 +6,7 @@ const documentRoutes = require('./documentRoutes');
 const searchRoutes   = require('./searchRoutes');
 const chatRoutes     = require('./chatRoutes');
 const conversationRoutes = require('./conversationRoutes');
+const adminRoutes        = require('./adminRoutes');
 
 const router = express.Router();
 
@@ -29,5 +30,8 @@ router.use('/chat', chatRoutes);
 
 // ── Conversations ─────────────────────────────────────────────
 router.use('/conversations', conversationRoutes);
+
+// ── Admin Dashboard ───────────────────────────────────────────
+router.use('/admin', adminRoutes);
 
 module.exports = router;

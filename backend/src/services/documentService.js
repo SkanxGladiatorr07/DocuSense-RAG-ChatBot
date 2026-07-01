@@ -317,9 +317,10 @@ const chunkDocument = async (documentId, userId) => {
 // ── getDocumentAnalytics ───────────────────────────────────────────────────────
 
 /**
- * Compute document-specific analytics for an authenticated user.
+ * Compute document-specific analytics. Run globally if userId is omitted or null,
+ * or scoped to the user if userId is provided.
  *
- * @param {string} userId - The authenticated user's ID
+ * @param {string} [userId=null] - Optional authenticated user's ID
  * @returns {Promise<{
  *   totalDocuments: number,
  *   documentsByStatus: Record<string, number>,
@@ -328,12 +329,15 @@ const chunkDocument = async (documentId, userId) => {
  *   latestUploadedDocuments: object[]
  * }>}
  */
-const getDocumentAnalytics = async (userId) => {
-  if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
-    throw AppError.badRequest('documentService.getDocumentAnalytics: invalid or missing userId.');
-  }
+const getDocumentAnalytics = async (userId = null) => {
+  const matchQuery = {};
 
-  const userObjectId = new mongoose.Types.ObjectId(userId);
+  if (userId) {
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      throw AppError.badRequest('documentService.getDocumentAnalytics: invalid userId format.');
+    }
+    matchQuery.uploadedBy = new mongoose.Types.ObjectId(userId);
+  }
 
   try {
     const [
@@ -344,17 +348,17 @@ const getDocumentAnalytics = async (userId) => {
       latestDocs
     ] = await Promise.all([
       // 1. Total uploaded documents
-      Document.countDocuments({ uploadedBy: userObjectId }),
+      Document.countDocuments(matchQuery),
 
       // 2. Documents by status (Mongoose aggregation)
       Document.aggregate([
-        { $match: { uploadedBy: userObjectId } },
+        { $match: matchQuery },
         { $group: { _id: '$status', count: { $sum: 1 } } }
       ]),
 
       // 3. Average chunks per document (Mongoose aggregation with $lookup)
       Document.aggregate([
-        { $match: { uploadedBy: userObjectId } },
+        { $match: matchQuery },
         {
           $lookup: {
             from: 'chunks',
@@ -384,13 +388,13 @@ const getDocumentAnalytics = async (userId) => {
       ]),
 
       // 4. Largest document (by fileSize)
-      Document.findOne({ uploadedBy: userObjectId })
+      Document.findOne(matchQuery)
         .sort({ fileSize: -1 })
         .select('_id fileName originalName fileType fileSize uploadDate status')
         .lean(),
 
       // 5. Latest uploaded documents (limit to 5)
-      Document.find({ uploadedBy: userObjectId })
+      Document.find(matchQuery)
         .sort({ uploadDate: -1 })
         .limit(5)
         .select('_id fileName originalName fileType fileSize uploadDate status')

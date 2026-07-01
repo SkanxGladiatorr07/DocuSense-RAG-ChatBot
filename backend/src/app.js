@@ -58,6 +58,12 @@ app.use('/api/chat', require('./routes/chatRoutes'));
 //   /api/conversations     (unversioned alias — as required)
 app.use('/api/conversations', require('./routes/conversationRoutes'));
 
+// ── Version-agnostic alias: /api/admin ───────────────────────────────────────
+// Reachable at both:
+//   /api/v1/admin/dashboard  (versioned — preferred)
+//   /api/admin/dashboard     (unversioned alias — as required)
+app.use('/api/admin', require('./routes/adminRoutes'));
+
 // ── Health check at root (as per spec) ───────────────────────────────────────
 // Also reachable via GET /api/v1/ through the router above
 app.get('/', (req, res) => {
