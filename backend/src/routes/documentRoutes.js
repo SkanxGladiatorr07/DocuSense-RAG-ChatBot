@@ -30,6 +30,7 @@ const {
   chunkDocument,
   embedDocument,
   getDocumentAnalytics,
+  deleteDocument,
 } = require('../controllers/documentController');
 
 const router = express.Router();
@@ -77,6 +78,16 @@ router.get(
   '/:id',
   authenticate,
   getDocument
+);
+
+// ── DELETE /:id — delete document file, metadata, and chunks/embeddings ─────────
+//
+//   Returns 400 for a malformed id, 404 if not found or not owned by caller.
+//
+router.delete(
+  '/:id',
+  authenticate,
+  deleteDocument
 );
 
 // ── POST /:id/process — extract text from a previously uploaded PDF ────────────────

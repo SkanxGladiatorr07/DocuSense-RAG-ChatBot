@@ -315,6 +315,42 @@ const getDocumentAnalytics = asyncHandler(async (req, res) => {
   return successResponse(res, 200, 'Document analytics fetched successfully.', analytics);
 });
 
+// ── DELETE /api/v1/documents/:id ──────────────────────────────────────────────
+
+/**
+ * Delete a document from disk, metadata, and chunks/embeddings.
+ *
+ * Success response (200):
+ * {
+ *   "success": true,
+ *   "message": "Document deleted successfully.",
+ *   "data": {
+ *     "summary": {
+ *       "documentId": "64f...",
+ *       "fileName": "...",
+ *       "originalName": "...",
+ *       "chunksDeleted": 12,
+ *       "fileDeleted": true
+ *     }
+ *   }
+ * }
+ *
+ * @route  DELETE /api/v1/documents/:id
+ * @access Private
+ */
+const deleteDocument = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  // Guard: reject obviously malformed ids before hitting DB
+  if (!id.match(/^[a-f\d]{24}$/i)) {
+    throw AppError.badRequest(`"${id}" is not a valid document ID.`);
+  }
+
+  const summary = await documentService.deleteDocument(id, req.user._id);
+
+  return successResponse(res, 200, 'Document deleted successfully.', { summary });
+});
+
 // ── Exports ───────────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -325,4 +361,5 @@ module.exports = {
   chunkDocument,
   embedDocument,
   getDocumentAnalytics,
+  deleteDocument,
 };

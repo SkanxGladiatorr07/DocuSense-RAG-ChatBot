@@ -22,7 +22,10 @@
  */
 
 const path = require('path');
+const fs = require('fs').promises;
 const mongoose = require('mongoose');
+
+const UPLOADS_DIR = path.resolve(__dirname, '../../uploads');
 
 const { Document, Chunk } = require('../models');
 const AppError          = require('../utils/AppError');
@@ -428,6 +431,76 @@ const getDocumentAnalytics = async (userId = null) => {
   }
 };
 
+// ── deleteDocument ─────────────────────────────────────────────────────────────
+
+/**
+ * Delete a document from disk, remove its database metadata, and clean up
+ * all associated text chunks/embeddings.
+ *
+ * Scoped to the authenticated owner to prevent unauthorised deletions.
+ *
+ * @param {string} documentId - MongoDB ObjectId string of the document
+ * @param {string} userId     - MongoDB ObjectId string of the authenticated user
+ *
+ * @returns {Promise<{
+ *   documentId: string,
+ *   fileName: string,
+ *   originalName: string,
+ *   chunksDeleted: number,
+ *   fileDeleted: boolean
+ * }>}
+ * @throws {AppError} 404 if the document is not found or not owned by user
+ * @throws {AppError} 500 on unexpected deletion failure
+ */
+const deleteDocument = async (documentId, userId) => {
+  // 1. Fetch document and verify ownership (throws 404 if not found/owned)
+  const doc = await getDocumentById(documentId, userId);
+
+  // 2. Delete file from disk
+  const filePath = path.join(UPLOADS_DIR, doc.fileName);
+  let fileDeleted = false;
+  try {
+    await fs.unlink(filePath);
+    fileDeleted = true;
+    logger.info(`[documentService.deleteDocument] Successfully deleted file from disk: ${filePath}`);
+  } catch (fileErr) {
+    // If file is not on disk (ENOENT), log warning but proceed so database stays consistent
+    if (fileErr.code === 'ENOENT') {
+      logger.warn(`[documentService.deleteDocument] File not found on disk during deletion: ${filePath}. Proceeding to database clean-up.`);
+    } else {
+      logger.error(`[documentService.deleteDocument] Failed to delete file from disk: ${fileErr.message}`);
+      throw AppError.internal('Failed to delete document file from disk.');
+    }
+  }
+
+  // 3. Delete associated chunks & embeddings
+  let chunksDeleted = 0;
+  try {
+    chunksDeleted = await chunkStorageService.deleteChunksByDocumentId(documentId);
+    logger.info(`[documentService.deleteDocument] Deleted ${chunksDeleted} chunks for document: ${documentId}`);
+  } catch (chunkErr) {
+    logger.error(`[documentService.deleteDocument] Failed to delete chunks: ${chunkErr.message}`);
+    throw AppError.internal('Failed to delete document chunks from database.');
+  }
+
+  // 4. Delete document metadata
+  try {
+    await Document.deleteOne({ _id: documentId, uploadedBy: userId });
+    logger.info(`[documentService.deleteDocument] Deleted document metadata for: ${documentId}`);
+  } catch (dbErr) {
+    logger.error(`[documentService.deleteDocument] Failed to delete document metadata: ${dbErr.message}`);
+    throw AppError.internal('Failed to delete document metadata from database.');
+  }
+
+  return {
+    documentId: documentId.toString(),
+    fileName: doc.fileName,
+    originalName: doc.originalName,
+    chunksDeleted,
+    fileDeleted
+  };
+};
+
 // ── Exports ────────────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -437,4 +510,5 @@ module.exports = {
   processDocumentText,
   chunkDocument,
   getDocumentAnalytics,
+  deleteDocument,
 };
