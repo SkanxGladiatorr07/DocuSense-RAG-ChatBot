@@ -77,22 +77,22 @@ const createDocument = async ({ fileName, originalName, fileType, fileSize, uplo
   }
 };
 
-// ── getDocumentById ────────────────────────────────────────────────────────────
-
 /**
- * Fetch a single document by its MongoDB _id, scoped to the requesting user.
+ * Fetch a single document by its MongoDB _id, optionally scoped to the requesting user.
  *
  * Scoping to the owner prevents one user from accessing another user's document
- * even if they somehow obtain a valid ObjectId.
+ * even if they somehow obtain a valid ObjectId. If userId is null, it bypasses
+ * owner scoping (admin mode).
  *
  * @param {string} documentId - The document's MongoDB _id
- * @param {string} userId     - The authenticated user's _id (from req.user._id)
+ * @param {string} [userId=null] - Optional authenticated user's _id
  *
  * @returns {Promise<import('mongoose').Document>} The found Document
  * @throws  {AppError} 404 if no document matches both id and owner
  */
-const getDocumentById = async (documentId, userId) => {
-  const doc = await Document.findOne({ _id: documentId, uploadedBy: userId });
+const getDocumentById = async (documentId, userId = null) => {
+  const query = userId ? { _id: documentId, uploadedBy: userId } : { _id: documentId };
+  const doc = await Document.findOne(query);
 
   if (!doc) {
     throw AppError.notFound('Document not found.');
@@ -486,7 +486,8 @@ const deleteDocument = async (documentId, userId) => {
 
   // 4. Delete document metadata
   try {
-    await Document.deleteOne({ _id: documentId, uploadedBy: userId });
+    const query = userId ? { _id: documentId, uploadedBy: userId } : { _id: documentId };
+    await Document.deleteOne(query);
     logger.info(`[documentService.deleteDocument] Deleted document metadata for: ${documentId}`);
   } catch (dbErr) {
     logger.error(`[documentService.deleteDocument] Failed to delete document metadata: ${dbErr.message}`);

@@ -335,8 +335,28 @@ const getDocumentAnalytics = asyncHandler(async (req, res) => {
  *   }
  * }
  *
+// ── DELETE /api/v1/documents/:id ──────────────────────────────────────────────
+
+/**
+ * Delete any document (admin only).
+ *
+ * Success response (200):
+ * {
+ *   "success": true,
+ *   "message": "Document deleted successfully.",
+ *   "data": {
+ *     "summary": {
+ *       "documentId": "64f...",
+ *       "fileName": "...",
+ *       "originalName": "...",
+ *       "chunksDeleted": 12,
+ *       "fileDeleted": true
+ *     }
+ *   }
+ * }
+ *
  * @route  DELETE /api/v1/documents/:id
- * @access Private
+ * @access Private (Admin only)
  */
 const deleteDocument = asyncHandler(async (req, res) => {
   const { id } = req.params;
@@ -346,7 +366,8 @@ const deleteDocument = asyncHandler(async (req, res) => {
     throw AppError.badRequest(`"${id}" is not a valid document ID.`);
   }
 
-  const summary = await documentService.deleteDocument(id, req.user._id);
+  // Admin bypass: pass null for userId to delete any document
+  const summary = await documentService.deleteDocument(id, null);
 
   return successResponse(res, 200, 'Document deleted successfully.', { summary });
 });
@@ -354,7 +375,7 @@ const deleteDocument = asyncHandler(async (req, res) => {
 // ── POST /api/v1/documents/:id/reprocess ──────────────────────────────────────
 
 /**
- * Reprocess an already uploaded document: re-extract, chunk, and embed.
+ * Reprocess any document: re-extract, chunk, and embed (admin only).
  *
  * Success response (200):
  * {
@@ -370,7 +391,7 @@ const deleteDocument = asyncHandler(async (req, res) => {
  * }
  *
  * @route  POST /api/v1/documents/:id/reprocess
- * @access Private
+ * @access Private (Admin only)
  */
 const reprocessDocument = asyncHandler(async (req, res) => {
   const { id } = req.params;
@@ -380,59 +401,47 @@ const reprocessDocument = asyncHandler(async (req, res) => {
     throw AppError.badRequest(`"${id}" is not a valid document ID.`);
   }
 
-  const result = await documentService.reprocessDocument(id, req.user._id);
+  // Admin bypass: pass null for userId to reprocess any document
+  const result = await documentService.reprocessDocument(id, null);
 
   return successResponse(res, 200, 'Document reprocessed successfully.', result);
 });
 
-// ── POST /api/v1/documents/bulk/delete ────────────────────────────────────────
+// ── POST /api/v1/documents/bulk ───────────────────────────────────────────────
 
 /**
- * Bulk delete a list of documents.
+ * Perform bulk operations (delete or reprocess) on documents (admin only).
  *
  * Request body:
  * {
+ *   "action": "delete" | "reprocess",
  *   "documentIds": ["64f...", "64f..."]
  * }
  *
- * @route  POST /api/v1/documents/bulk/delete
- * @access Private
+ * @route  POST /api/v1/documents/bulk
+ * @access Private (Admin only)
  */
-const bulkDeleteDocuments = asyncHandler(async (req, res) => {
-  const { documentIds } = req.body;
+const bulkDocuments = asyncHandler(async (req, res) => {
+  const { action, documentIds } = req.body;
+
+  if (!action || !['delete', 'reprocess'].includes(action)) {
+    throw AppError.badRequest('"action" must be either "delete" or "reprocess".');
+  }
 
   if (!documentIds || !Array.isArray(documentIds)) {
     throw AppError.badRequest('Request body must include a "documentIds" array.');
   }
 
-  const result = await documentService.bulkDeleteDocuments(documentIds, req.user._id);
-
-  return successResponse(res, 200, 'Bulk document deletion complete.', result);
-});
-
-// ── POST /api/v1/documents/bulk/reprocess ─────────────────────────────────────
-
-/**
- * Bulk reprocess a list of documents.
- *
- * Request body:
- * {
- *   "documentIds": ["64f...", "64f..."]
- * }
- *
- * @route  POST /api/v1/documents/bulk/reprocess
- * @access Private
- */
-const bulkReprocessDocuments = asyncHandler(async (req, res) => {
-  const { documentIds } = req.body;
-
-  if (!documentIds || !Array.isArray(documentIds)) {
-    throw AppError.badRequest('Request body must include a "documentIds" array.');
+  let result;
+  if (action === 'delete') {
+    // Admin bypass: pass null for userId
+    result = await documentService.bulkDeleteDocuments(documentIds, null);
+  } else {
+    // Admin bypass: pass null for userId
+    result = await documentService.bulkReprocessDocuments(documentIds, null);
   }
 
-  const result = await documentService.bulkReprocessDocuments(documentIds, req.user._id);
-
-  return successResponse(res, 200, 'Bulk document reprocessing complete.', result);
+  return successResponse(res, 200, `Bulk document ${action} complete.`, result);
 });
 
 // ── Exports ───────────────────────────────────────────────────────────────────
@@ -447,6 +456,5 @@ module.exports = {
   getDocumentAnalytics,
   deleteDocument,
   reprocessDocument,
-  bulkDeleteDocuments,
-  bulkReprocessDocuments,
+  bulkDocuments,
 };

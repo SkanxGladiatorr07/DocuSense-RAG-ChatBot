@@ -21,6 +21,7 @@
 
 const express      = require('express');
 const authenticate = require('../middleware/authenticate');
+const authorise    = require('../middleware/authorise');
 const { uploadSingle } = require('../middleware/upload');
 const {
   uploadDocument,
@@ -32,8 +33,7 @@ const {
   getDocumentAnalytics,
   deleteDocument,
   reprocessDocument,
-  bulkDeleteDocuments,
-  bulkReprocessDocuments,
+  bulkDocuments,
 } = require('../controllers/documentController');
 
 const router = express.Router();
@@ -62,24 +62,15 @@ router.get(
   getDocumentAnalytics
 );
 
-// ── POST /bulk/delete — bulk delete documents ───────────────────────────────────
+// ── POST /bulk — bulk delete or reprocess documents (admin only) ────────────────
 //
 //   Must be defined BEFORE GET /:id so it doesn't get treated as an ID.
 //
 router.post(
-  '/bulk/delete',
+  '/bulk',
   authenticate,
-  bulkDeleteDocuments
-);
-
-// ── POST /bulk/reprocess — bulk reprocess documents ─────────────────────────────
-//
-//   Must be defined BEFORE GET /:id so it doesn't get treated as an ID.
-//
-router.post(
-  '/bulk/reprocess',
-  authenticate,
-  bulkReprocessDocuments
+  authorise('admin'),
+  bulkDocuments
 );
 
 // ── GET / — list the caller's documents (paginated, newest first) ─────────────
@@ -103,13 +94,14 @@ router.get(
   getDocument
 );
 
-// ── DELETE /:id — delete document file, metadata, and chunks/embeddings ─────────
+// ── DELETE /:id — delete document file, metadata, and chunks/embeddings (admin only)
 //
-//   Returns 400 for a malformed id, 404 if not found or not owned by caller.
+//   Returns 400 for a malformed id, 404 if not found.
 //
 router.delete(
   '/:id',
   authenticate,
+  authorise('admin'),
   deleteDocument
 );
 
@@ -149,15 +141,17 @@ router.post(
   embedDocument
 );
 
-// ── POST /:id/reprocess — sequentially re-extract, chunk, and embed ───────────────
+// ── POST /:id/reprocess — sequentially re-extract, chunk, and embed (admin only) ──
 //
 //   Middleware chain:
 //   1. authenticate      — verifies JWT, attaches req.user
-//   2. reprocessDocument — runs reprocessDocument pipeline
+//   2. authorise('admin') — limits access to admins
+//   3. reprocessDocument — runs reprocessDocument pipeline
 //
 router.post(
   '/:id/reprocess',
   authenticate,
+  authorise('admin'),
   reprocessDocument
 );
 

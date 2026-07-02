@@ -35,9 +35,10 @@ const { STATUSES } = require('./processingService');
  * @throws {AppError} 404 - Document not found or not owned by user.
  * @throws {AppError} 422 - Document has no chunks to embed.
  */
-const runEmbeddingPipeline = async (documentId, userId) => {
+const runEmbeddingPipeline = async (documentId, userId = null) => {
   // ── 1. Fetch & authorize document ──────────────────────────────────────────
-  const doc = await Document.findOne({ _id: documentId, uploadedBy: userId });
+  const query = userId ? { _id: documentId, uploadedBy: userId } : { _id: documentId };
+  const doc = await Document.findOne(query);
   if (!doc) {
     throw AppError.notFound('Document not found or unauthorized.');
   }
