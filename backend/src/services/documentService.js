@@ -557,6 +557,134 @@ const reprocessDocument = async (documentId, userId) => {
   };
 };
 
+// ── bulkDeleteDocuments ────────────────────────────────────────────────────────
+
+/**
+ * Bulk delete a list of documents.
+ * Scoped to the authenticated owner. Partial failures are caught and reported
+ * in the final summary so that one failure does not halt the entire operation.
+ *
+ * @param {string[]} documentIds - Array of document ObjectId strings to delete.
+ * @param {string} userId - MongoDB ObjectId of the requesting user.
+ * @returns {Promise<{
+ *   totalRequested: number,
+ *   successCount: number,
+ *   failureCount: number,
+ *   results: Array<{ documentId: string, success: boolean, summary?: object, error?: string }>
+ * }>}
+ */
+const bulkDeleteDocuments = async (documentIds, userId) => {
+  if (!Array.isArray(documentIds)) {
+    throw AppError.badRequest('bulkDeleteDocuments: documentIds must be an array.');
+  }
+
+  logger.info(`[documentService.bulkDeleteDocuments] Bulk deletion started for ${documentIds.length} documents.`);
+
+  const results = [];
+  let successCount = 0;
+  let failureCount = 0;
+
+  for (const documentId of documentIds) {
+    try {
+      if (!documentId || !mongoose.Types.ObjectId.isValid(documentId)) {
+        throw new Error('Invalid document ID format.');
+      }
+
+      const summary = await deleteDocument(documentId, userId);
+      results.push({
+        documentId,
+        success: true,
+        summary
+      });
+      successCount++;
+    } catch (err) {
+      logger.error(`[documentService.bulkDeleteDocuments] Failed to delete document ${documentId}: ${err.message}`);
+      results.push({
+        documentId,
+        success: false,
+        error: err.message
+      });
+      failureCount++;
+    }
+  }
+
+  logger.info(
+    `[documentService.bulkDeleteDocuments] Bulk deletion finished. ` +
+    `Total: ${documentIds.length} | Success: ${successCount} | Failure: ${failureCount}`
+  );
+
+  return {
+    totalRequested: documentIds.length,
+    successCount,
+    failureCount,
+    results
+  };
+};
+
+// ── bulkReprocessDocuments ─────────────────────────────────────────────────────
+
+/**
+ * Bulk reprocess a list of documents.
+ * Scoped to the authenticated owner. Partial failures are caught and reported
+ * in the final summary.
+ *
+ * @param {string[]} documentIds - Array of document ObjectId strings to reprocess.
+ * @param {string} userId - MongoDB ObjectId of the requesting user.
+ * @returns {Promise<{
+ *   totalRequested: number,
+ *   successCount: number,
+ *   failureCount: number,
+ *   results: Array<{ documentId: string, success: boolean, summary?: object, error?: string }>
+ * }>}
+ */
+const bulkReprocessDocuments = async (documentIds, userId) => {
+  if (!Array.isArray(documentIds)) {
+    throw AppError.badRequest('bulkReprocessDocuments: documentIds must be an array.');
+  }
+
+  logger.info(`[documentService.bulkReprocessDocuments] Bulk reprocessing started for ${documentIds.length} documents.`);
+
+  const results = [];
+  let successCount = 0;
+  let failureCount = 0;
+
+  for (const documentId of documentIds) {
+    try {
+      if (!documentId || !mongoose.Types.ObjectId.isValid(documentId)) {
+        throw new Error('Invalid document ID format.');
+      }
+
+      const summary = await reprocessDocument(documentId, userId);
+      results.push({
+        documentId,
+        success: true,
+        summary
+      });
+      successCount++;
+    } catch (err) {
+      logger.error(`[documentService.bulkReprocessDocuments] Failed to reprocess document ${documentId}: ${err.message}`);
+      results.push({
+        documentId,
+        success: false,
+        error: err.message
+      });
+      failureCount++;
+    }
+  }
+
+  logger.info(
+    `[documentService.bulkReprocessDocuments] Bulk reprocessing finished. ` +
+    `Total: ${documentIds.length} | Success: ${successCount} | Failure: ${failureCount}`
+  );
+
+  return {
+    totalRequested: documentIds.length,
+    successCount,
+    failureCount,
+    results
+  };
+};
+
 // ── Exports ────────────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -568,4 +696,6 @@ module.exports = {
   getDocumentAnalytics,
   deleteDocument,
   reprocessDocument,
+  bulkDeleteDocuments,
+  bulkReprocessDocuments,
 };

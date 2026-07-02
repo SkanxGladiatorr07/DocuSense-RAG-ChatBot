@@ -32,6 +32,8 @@ const {
   getDocumentAnalytics,
   deleteDocument,
   reprocessDocument,
+  bulkDeleteDocuments,
+  bulkReprocessDocuments,
 } = require('../controllers/documentController');
 
 const router = express.Router();
@@ -58,6 +60,26 @@ router.get(
   '/analytics',
   authenticate,
   getDocumentAnalytics
+);
+
+// ── POST /bulk/delete — bulk delete documents ───────────────────────────────────
+//
+//   Must be defined BEFORE GET /:id so it doesn't get treated as an ID.
+//
+router.post(
+  '/bulk/delete',
+  authenticate,
+  bulkDeleteDocuments
+);
+
+// ── POST /bulk/reprocess — bulk reprocess documents ─────────────────────────────
+//
+//   Must be defined BEFORE GET /:id so it doesn't get treated as an ID.
+//
+router.post(
+  '/bulk/reprocess',
+  authenticate,
+  bulkReprocessDocuments
 );
 
 // ── GET / — list the caller's documents (paginated, newest first) ─────────────

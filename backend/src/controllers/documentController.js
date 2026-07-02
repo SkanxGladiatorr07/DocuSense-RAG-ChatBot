@@ -385,6 +385,56 @@ const reprocessDocument = asyncHandler(async (req, res) => {
   return successResponse(res, 200, 'Document reprocessed successfully.', result);
 });
 
+// ── POST /api/v1/documents/bulk/delete ────────────────────────────────────────
+
+/**
+ * Bulk delete a list of documents.
+ *
+ * Request body:
+ * {
+ *   "documentIds": ["64f...", "64f..."]
+ * }
+ *
+ * @route  POST /api/v1/documents/bulk/delete
+ * @access Private
+ */
+const bulkDeleteDocuments = asyncHandler(async (req, res) => {
+  const { documentIds } = req.body;
+
+  if (!documentIds || !Array.isArray(documentIds)) {
+    throw AppError.badRequest('Request body must include a "documentIds" array.');
+  }
+
+  const result = await documentService.bulkDeleteDocuments(documentIds, req.user._id);
+
+  return successResponse(res, 200, 'Bulk document deletion complete.', result);
+});
+
+// ── POST /api/v1/documents/bulk/reprocess ─────────────────────────────────────
+
+/**
+ * Bulk reprocess a list of documents.
+ *
+ * Request body:
+ * {
+ *   "documentIds": ["64f...", "64f..."]
+ * }
+ *
+ * @route  POST /api/v1/documents/bulk/reprocess
+ * @access Private
+ */
+const bulkReprocessDocuments = asyncHandler(async (req, res) => {
+  const { documentIds } = req.body;
+
+  if (!documentIds || !Array.isArray(documentIds)) {
+    throw AppError.badRequest('Request body must include a "documentIds" array.');
+  }
+
+  const result = await documentService.bulkReprocessDocuments(documentIds, req.user._id);
+
+  return successResponse(res, 200, 'Bulk document reprocessing complete.', result);
+});
+
 // ── Exports ───────────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -397,4 +447,6 @@ module.exports = {
   getDocumentAnalytics,
   deleteDocument,
   reprocessDocument,
+  bulkDeleteDocuments,
+  bulkReprocessDocuments,
 };
