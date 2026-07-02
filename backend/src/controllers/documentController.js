@@ -351,6 +351,40 @@ const deleteDocument = asyncHandler(async (req, res) => {
   return successResponse(res, 200, 'Document deleted successfully.', { summary });
 });
 
+// ── POST /api/v1/documents/:id/reprocess ──────────────────────────────────────
+
+/**
+ * Reprocess an already uploaded document: re-extract, chunk, and embed.
+ *
+ * Success response (200):
+ * {
+ *   "success": true,
+ *   "message": "Document reprocessed successfully.",
+ *   "data": {
+ *     "documentId": "64f...",
+ *     "extractionSummary": { ... },
+ *     "chunkingSummary": { "totalChunks": 12, "avgChunkSize": 498 },
+ *     "embeddingSummary": { "totalProcessedChunks": 12, "successfulEmbeddings": 12, "failedEmbeddings": 0 },
+ *     "status": "indexed"
+ *   }
+ * }
+ *
+ * @route  POST /api/v1/documents/:id/reprocess
+ * @access Private
+ */
+const reprocessDocument = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  // Guard: reject obviously malformed ids before hitting DB
+  if (!id.match(/^[a-f\d]{24}$/i)) {
+    throw AppError.badRequest(`"${id}" is not a valid document ID.`);
+  }
+
+  const result = await documentService.reprocessDocument(id, req.user._id);
+
+  return successResponse(res, 200, 'Document reprocessed successfully.', result);
+});
+
 // ── Exports ───────────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -362,4 +396,5 @@ module.exports = {
   embedDocument,
   getDocumentAnalytics,
   deleteDocument,
+  reprocessDocument,
 };

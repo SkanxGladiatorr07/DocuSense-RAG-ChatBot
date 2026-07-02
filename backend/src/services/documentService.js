@@ -33,6 +33,7 @@ const logger            = require('../utils/logger');
 const processingService = require('./processingService');
 const chunkingService   = require('./chunkingService');
 const chunkStorageService = require('./chunkStorageService');
+const embeddingPipelineService = require('./embeddingPipelineService');
 const { STATUSES }      = processingService;
 
 
@@ -501,6 +502,61 @@ const deleteDocument = async (documentId, userId) => {
   };
 };
 
+// ── reprocessDocument ──────────────────────────────────────────────────────────
+
+/**
+ * Reprocess an already uploaded document:
+ *   1. Re-extract document text.
+ *   2. Regenerate chunks (which deletes previous chunks).
+ *   3. Regenerate embeddings (which generates new vector embeddings).
+ *
+ * Runs sequentially and returns a combined summary.
+ *
+ * @param {string} documentId - MongoDB ObjectId of the document to reprocess.
+ * @param {string} userId     - Authenticated user ObjectId.
+ * @returns {Promise<{
+ *   documentId: string,
+ *   extractionSummary: object,
+ *   chunkingSummary: object,
+ *   embeddingSummary: object,
+ *   status: string
+ * }>}
+ * @throws {AppError} 404 - Document not found or not owned by user.
+ * @throws {AppError} 500 - Reprocessing pipeline failure.
+ */
+const reprocessDocument = async (documentId, userId) => {
+  logger.info(`[documentService.reprocessDocument] Reprocessing started for document: ${documentId}`);
+
+  // 1. Fetch document and verify ownership first
+  const doc = await getDocumentById(documentId, userId);
+
+  // 2. Re-extract text (resets status to processing, extracts, and saves as indexed)
+  const processResult = await processDocumentText(documentId, userId, UPLOADS_DIR);
+
+  // 3. Regenerate chunks (deletes previous chunks and creates new ones)
+  const chunkResult = await chunkDocument(documentId, userId);
+
+  // 4. Regenerate embeddings (sets status to processing, generates vectors, and saves as indexed)
+  const embedResult = await embeddingPipelineService.runEmbeddingPipeline(documentId, userId);
+
+  logger.info(`[documentService.reprocessDocument] Reprocessing completed successfully for document: ${documentId}`);
+
+  return {
+    documentId: documentId.toString(),
+    extractionSummary: processResult.summary,
+    chunkingSummary: {
+      totalChunks: chunkResult.totalChunks,
+      avgChunkSize: chunkResult.avgChunkSize
+    },
+    embeddingSummary: {
+      totalProcessedChunks: embedResult.totalProcessedChunks,
+      successfulEmbeddings: embedResult.successfulEmbeddings,
+      failedEmbeddings: embedResult.failedEmbeddings
+    },
+    status: embedResult.status
+  };
+};
+
 // ── Exports ────────────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -511,4 +567,5 @@ module.exports = {
   chunkDocument,
   getDocumentAnalytics,
   deleteDocument,
+  reprocessDocument,
 };

@@ -31,6 +31,7 @@ const {
   embedDocument,
   getDocumentAnalytics,
   deleteDocument,
+  reprocessDocument,
 } = require('../controllers/documentController');
 
 const router = express.Router();
@@ -124,6 +125,18 @@ router.post(
   '/:id/embed',
   authenticate,
   embedDocument
+);
+
+// ── POST /:id/reprocess — sequentially re-extract, chunk, and embed ───────────────
+//
+//   Middleware chain:
+//   1. authenticate      — verifies JWT, attaches req.user
+//   2. reprocessDocument — runs reprocessDocument pipeline
+//
+router.post(
+  '/:id/reprocess',
+  authenticate,
+  reprocessDocument
 );
 
 module.exports = router;
