@@ -9,12 +9,12 @@
 
 const express = require('express');
 const cors = require('cors');
-const morgan = require('morgan');
 
 const env = require('./config/env');
 const routes = require('./routes');
 const notFound = require('./middleware/notFound');
 const errorHandler = require('./middleware/errorHandler');
+const requestLogger = require('./middleware/requestLogger');
 
 // ── App Initialisation ────────────────────────────────────────────────────────
 const app = express();
@@ -34,8 +34,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // ── HTTP Request Logging ──────────────────────────────────────────────────────
-// 'dev' format in development (coloured), 'combined' in production (Apache-style)
-app.use(morgan(env.isDev ? 'dev' : 'combined'));
+app.use(requestLogger);
 
 // ── API Routes ────────────────────────────────────────────────────────────────
 app.use('/api/v1', routes);
