@@ -28,4 +28,5 @@ module.exports = {
   conversationService: require('./conversationService'),
   citationBuilderService: require('./citationBuilderService'),
   analyticsService: require('./analyticsService'),
+  cacheService: require('./cacheService'),
 };

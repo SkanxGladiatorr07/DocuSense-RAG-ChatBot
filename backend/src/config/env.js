@@ -49,6 +49,9 @@ const env = {
   rateLimitUploadWindowMs: parseInt(process.env.RATE_LIMIT_UPLOAD_WINDOW_MS, 10) || 15 * 60 * 1000,
   rateLimitUploadMax      : parseInt(process.env.RATE_LIMIT_UPLOAD_MAX, 10)       || 10,
 
+  // Caching Config
+  chatCacheTtlSec: parseInt(process.env.CHAT_CACHE_TTL_SEC, 10) || 300,
+
   // Convenience flags
   isDev : (process.env.NODE_ENV || 'development') === 'development',
   isProd: process.env.NODE_ENV === 'production',

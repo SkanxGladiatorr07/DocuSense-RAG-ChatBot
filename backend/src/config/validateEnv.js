@@ -159,6 +159,18 @@ const RULES = [
       return null;
     },
   },
+  {
+    name: 'CHAT_CACHE_TTL_SEC',
+    required: false,
+    hint: 'Cache expiration time in seconds for repeated chat queries (e.g. 300)',
+    validate: (v) => {
+      const n = Number(v);
+      if (!Number.isInteger(n) || n <= 0) {
+        return `'${v}' must be a valid positive integer`;
+      }
+      return null;
+    },
+  },
 ];
 
 // ── Formatter ─────────────────────────────────────────────────────────────────

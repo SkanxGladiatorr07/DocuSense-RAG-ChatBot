@@ -17,7 +17,9 @@ const asyncHandler         = require('../utils/asyncHandler');
 const { successResponse }  = require('../utils/ApiResponse');
 const AppError             = require('../utils/AppError');
 const mongoose             = require('mongoose');
-const { ragService, promptBuilderService } = require('../services');
+const env                  = require('../config/env');
+const logger               = require('../utils/logger');
+const { ragService, promptBuilderService, cacheService } = require('../services');
 
 // ── POST /api/v1/chat/ask ─────────────────────────────────────────────────────
 
@@ -127,15 +129,58 @@ const askQuestion = asyncHandler(async (req, res) => {
     }
   }
 
-  // ── Delegate to RAG pipeline ───────────────────────────────────────────────
-  const result = await ragService.ask(question, {
-    topK,
-    documentId,
-    minScore,
-    template,
-    maxOutputTokens,
-    temperature,
-  });
+  // ── Retrieve bypass flag ───────────────────────────────────────────────────
+  const bypassCache = req.headers['x-bypass-cache'] === 'true' ||
+                      req.headers['cache-control'] === 'no-cache' ||
+                      req.body.bypassCache === true ||
+                      req.body.noCache === true;
+
+  // ── Construct Deterministic Cache Key ───────────────────────────────────────
+  const normalizedQuestion = question.trim().toLowerCase();
+  const cacheKey = `chat:${req.user._id}:${normalizedQuestion}:` +
+    `k=${topK || 'default'}:` +
+    `d=${documentId || 'all'}:` +
+    `s=${minScore || 'none'}:` +
+    `t=${template || 'standard'}:` +
+    `o=${maxOutputTokens || 'default'}:` +
+    `temp=${temperature || 'default'}`;
+
+  let result;
+  let cachedData = null;
+
+  if (!bypassCache) {
+    try {
+      cachedData = await cacheService.get(cacheKey);
+    } catch (cacheErr) {
+      logger.error(`[chatController] Cache read failed: ${cacheErr.message}`);
+    }
+  }
+
+  if (cachedData) {
+    res.setHeader('X-Cache', 'HIT');
+    logger.info(`[chatController] Serving cached response for key: ${cacheKey}`);
+    result = cachedData;
+  } else {
+    res.setHeader('X-Cache', 'MISS');
+    logger.info(`[chatController] Cache miss. Delegating query to RAG pipeline.`);
+
+    // ── Delegate to RAG pipeline ───────────────────────────────────────────────
+    result = await ragService.ask(question, {
+      topK,
+      documentId,
+      minScore,
+      template,
+      maxOutputTokens,
+      temperature,
+    });
+
+    // ── Save to Cache ─────────────────────────────────────────────────────────
+    try {
+      await cacheService.set(cacheKey, result, env.chatCacheTtlSec);
+    } catch (cacheErr) {
+      logger.error(`[chatController] Cache write failed: ${cacheErr.message}`);
+    }
+  }
 
   // ── Shape response ─────────────────────────────────────────────────────────
   return successResponse(res, 200, 'Answer generated successfully.', {
