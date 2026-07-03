@@ -87,6 +87,78 @@ const RULES = [
       return null;
     },
   },
+  {
+    name: 'RATE_LIMIT_AUTH_WINDOW_MS',
+    required: false,
+    hint: 'Time window in milliseconds for authentication rate limit (e.g. 900000)',
+    validate: (v) => {
+      const n = Number(v);
+      if (!Number.isInteger(n) || n <= 0) {
+        return `'${v}' must be a valid positive integer`;
+      }
+      return null;
+    },
+  },
+  {
+    name: 'RATE_LIMIT_AUTH_MAX',
+    required: false,
+    hint: 'Max requests allowed in auth rate limit window (e.g. 20)',
+    validate: (v) => {
+      const n = Number(v);
+      if (!Number.isInteger(n) || n <= 0) {
+        return `'${v}' must be a valid positive integer`;
+      }
+      return null;
+    },
+  },
+  {
+    name: 'RATE_LIMIT_CHAT_WINDOW_MS',
+    required: false,
+    hint: 'Time window in milliseconds for chat rate limit (e.g. 60000)',
+    validate: (v) => {
+      const n = Number(v);
+      if (!Number.isInteger(n) || n <= 0) {
+        return `'${v}' must be a valid positive integer`;
+      }
+      return null;
+    },
+  },
+  {
+    name: 'RATE_LIMIT_CHAT_MAX',
+    required: false,
+    hint: 'Max requests allowed in chat rate limit window (e.g. 30)',
+    validate: (v) => {
+      const n = Number(v);
+      if (!Number.isInteger(n) || n <= 0) {
+        return `'${v}' must be a valid positive integer`;
+      }
+      return null;
+    },
+  },
+  {
+    name: 'RATE_LIMIT_UPLOAD_WINDOW_MS',
+    required: false,
+    hint: 'Time window in milliseconds for document upload rate limit (e.g. 900000)',
+    validate: (v) => {
+      const n = Number(v);
+      if (!Number.isInteger(n) || n <= 0) {
+        return `'${v}' must be a valid positive integer`;
+      }
+      return null;
+    },
+  },
+  {
+    name: 'RATE_LIMIT_UPLOAD_MAX',
+    required: false,
+    hint: 'Max requests allowed in upload rate limit window (e.g. 10)',
+    validate: (v) => {
+      const n = Number(v);
+      if (!Number.isInteger(n) || n <= 0) {
+        return `'${v}' must be a valid positive integer`;
+      }
+      return null;
+    },
+  },
 ];
 
 // ── Formatter ─────────────────────────────────────────────────────────────────

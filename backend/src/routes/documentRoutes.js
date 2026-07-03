@@ -23,6 +23,7 @@ const express      = require('express');
 const authenticate = require('../middleware/authenticate');
 const authorise    = require('../middleware/authorise');
 const { uploadSingle } = require('../middleware/upload');
+const { uploadLimiter } = require('../middleware/rateLimiter');
 const {
   uploadDocument,
   getDocuments,
@@ -42,12 +43,14 @@ const router = express.Router();
 //
 //   Middleware chain:
 //   1. authenticate  — verifies JWT, attaches req.user
-//   2. uploadSingle  — runs Multer, validates type/size, writes to uploads/
-//   3. uploadDocument — saves metadata to MongoDB, returns document record
+//   2. uploadLimiter  — enforces rate limit on file upload requests
+//   3. uploadSingle  — runs Multer, validates type/size, writes to uploads/
+//   4. uploadDocument — saves metadata to MongoDB, returns document record
 //
 router.post(
   '/upload',
   authenticate,
+  uploadLimiter,
   uploadSingle('document'),
   uploadDocument
 );

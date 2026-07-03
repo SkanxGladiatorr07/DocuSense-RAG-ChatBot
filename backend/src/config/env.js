@@ -41,6 +41,14 @@ const env = {
   // Gemini
   geminiApiKey: process.env.GEMINI_API_KEY,
 
+  // Rate Limiting Config
+  rateLimitAuthWindowMs  : parseInt(process.env.RATE_LIMIT_AUTH_WINDOW_MS, 10)   || 15 * 60 * 1000,
+  rateLimitAuthMax        : parseInt(process.env.RATE_LIMIT_AUTH_MAX, 10)         || 20,
+  rateLimitChatWindowMs  : parseInt(process.env.RATE_LIMIT_CHAT_WINDOW_MS, 10)   || 1 * 60 * 1000,
+  rateLimitChatMax        : parseInt(process.env.RATE_LIMIT_CHAT_MAX, 10)         || 30,
+  rateLimitUploadWindowMs: parseInt(process.env.RATE_LIMIT_UPLOAD_WINDOW_MS, 10) || 15 * 60 * 1000,
+  rateLimitUploadMax      : parseInt(process.env.RATE_LIMIT_UPLOAD_MAX, 10)       || 10,
+
   // Convenience flags
   isDev : (process.env.NODE_ENV || 'development') === 'development',
   isProd: process.env.NODE_ENV === 'production',
