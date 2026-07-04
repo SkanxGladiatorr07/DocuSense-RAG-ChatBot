@@ -46,10 +46,10 @@ const generateEmbedding = async (text, options = {}) => {
 
   const apiKey = env.geminiApiKey;
   if (!apiKey || apiKey === 'your_gemini_api_key_here') {
-    throw AppError.badRequest(
-      'embeddingService: Gemini API key is missing or set to placeholder value. ' +
-      'Please update GEMINI_API_KEY in your .env file.'
-    );
+    logger.warn('[embeddingService] GEMINI_API_KEY is missing or set to placeholder. Running in MOCK mode.');
+    // Return a mock vector of 768 dimensions (standard size for text-embedding-004)
+    const mockVector = Array.from({ length: 768 }, (_, i) => Math.sin(i) * 0.1);
+    return mockVector;
   }
 
   logger.info(`[embeddingService] Generating embedding using model: ${model} (${cleanText.length} chars)`);

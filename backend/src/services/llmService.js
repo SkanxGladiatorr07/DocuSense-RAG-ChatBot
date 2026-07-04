@@ -87,10 +87,20 @@ const geminiProvider = {
 
     const apiKey = env.geminiApiKey;
     if (!apiKey || apiKey === 'your_gemini_api_key_here') {
-      throw AppError.badRequest(
-        'llmService: Gemini API key is missing or set to a placeholder. ' +
-        'Please update GEMINI_API_KEY in your .env file.'
-      );
+      logger.warn('[llmService] GEMINI_API_KEY is missing or set to placeholder. Running in MOCK mode.');
+      
+      let responseText = "This is a mock response from DocuSense RAG Assistant.\n\nTo see real, grounded answers, please set a valid GEMINI_API_KEY in your backend .env file.";
+      if (prompt.includes('CONTEXT') || prompt.includes('document')) {
+        responseText = `[Offline Mock Mode] I've analyzed your document corpus. Here is a simulated response based on your question. To get actual grounded AI answers, please configure a valid GEMINI_API_KEY in your backend .env file.`;
+      }
+      
+      return {
+        text: responseText,
+        model: 'mock-gemini-2.0-flash',
+        promptTokens: 12,
+        outputTokens: 42,
+        finishReason: 'STOP',
+      };
     }
 
     const url =

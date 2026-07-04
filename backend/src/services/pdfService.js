@@ -18,7 +18,7 @@
 
 const fs      = require('fs');
 const path    = require('path');
-const pdfParse = require('pdf-parse');
+const { PDFParse } = require('pdf-parse');
 
 const AppError = require('../utils/AppError');
 const logger   = require('../utils/logger');
@@ -94,11 +94,42 @@ const extractText = async (filePath) => {
   }
 
   // ── 3. Parse PDF ──────────────────────────────────────────────────────────
-  let parsed;
   try {
-    parsed = await pdfParse(dataBuffer);
+    const uint8Array = new Uint8Array(dataBuffer);
+    const parser = new PDFParse(uint8Array);
+
+    const textResult = await parser.getText();
+    const infoResult = await parser.getInfo().catch((err) => {
+      logger.warn(`[pdfService] Failed to fetch PDF info, continuing without it: ${err.message}`);
+      return { info: {}, metadata: {} };
+    });
+
+    const rawText = (textResult.text || '').trim();
+
+    // ── 4. Validate extracted content ─────────────────────────────────────────
+    if (rawText.length < MIN_TEXT_LENGTH) {
+      logger.warn(`[pdfService] No extractable text found in: ${fileName}`);
+      throw AppError.unprocessable(
+        `No text could be extracted from "${fileName}". ` +
+        'The PDF may contain only scanned images (OCR required) or be empty.'
+      );
+    }
+
+    logger.info(
+      `[pdfService] Extraction complete → ${fileName} | ` +
+      `pages: ${textResult.total} | chars: ${rawText.length}`
+    );
+
+    // ── 5. Return structured result ───────────────────────────────────────────
+    return {
+      text    : rawText,
+      numPages: textResult.total,
+      info    : infoResult.info     || {},
+      metadata: infoResult.metadata || {},
+    };
   } catch (parseErr) {
-    // pdf-parse throws generic Error objects; classify by message content
+    if (parseErr instanceof AppError) throw parseErr;
+
     const msg = parseErr.message || '';
     logger.error(`[pdfService] pdf-parse error for ${fileName}: ${msg}`);
 
@@ -123,30 +154,6 @@ const extractText = async (filePath) => {
     // Any other pdf-parse error → 500
     throw AppError.internal(`PDF parsing failed for "${fileName}": ${msg}`);
   }
-
-  // ── 4. Validate extracted content ─────────────────────────────────────────
-  const rawText = (parsed.text || '').trim();
-
-  if (rawText.length < MIN_TEXT_LENGTH) {
-    logger.warn(`[pdfService] No extractable text found in: ${fileName}`);
-    throw AppError.unprocessable(
-      `No text could be extracted from "${fileName}". ` +
-      'The PDF may contain only scanned images (OCR required) or be empty.'
-    );
-  }
-
-  logger.info(
-    `[pdfService] Extraction complete → ${fileName} | ` +
-    `pages: ${parsed.numpages} | chars: ${rawText.length}`
-  );
-
-  // ── 5. Return structured result ───────────────────────────────────────────
-  return {
-    text    : rawText,
-    numPages: parsed.numpages,
-    info    : parsed.info     || {},
-    metadata: parsed.metadata || {},
-  };
 };
 
 // ── isPdf ─────────────────────────────────────────────────────────────────────

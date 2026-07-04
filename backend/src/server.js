@@ -2,7 +2,7 @@
  * @file server.js
  * @description HTTP server entry point.
  *              Connects to the database, binds the Express app to a port,
- *              and wires graceful shutdown handlers for SIGTERM / SIGINT.
+ *              and wires graceful shutdown handlers for SIGTERM / SIGINT. (Restarted-v2)
  */
 
 // Config is loaded first so all subsequent modules can read process.env
