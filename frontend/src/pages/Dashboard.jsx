@@ -21,7 +21,12 @@ const Dashboard = () => {
   const [loadingDocs, setLoadingDocs] = useState(false)
   const [loadingAnalytics, setLoadingAnalytics] = useState(false)
   const [uploadState, setUploadState] = useState({ loading: false, progress: '' })
-  const [error, setError] = useState('')
+  
+  // Drag & Drop State
+  const [isDragging, setIsDragging] = useState(false)
+
+  // Toast Notification System
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' })
 
   // Textarea state
   const [inputText, setInputText] = useState('')
@@ -30,6 +35,7 @@ const Dashboard = () => {
   const textareaRef = useRef(null)
   const chatContainerRef = useRef(null)
   const fileInputRef = useRef(null)
+  const messagesEndRef = useRef(null)
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -56,11 +62,19 @@ const Dashboard = () => {
   }, [inputText])
 
   // Auto-scroll chat to bottom
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
   useEffect(() => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight
-    }
+    scrollToBottom()
   }, [messages, loadingChat])
+
+  // Toast helper
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type })
+    setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 4000)
+  }
 
   // ── API Fetchers ────────────────────────────────────────────────────────────
 
@@ -69,7 +83,7 @@ const Dashboard = () => {
       const res = await api.get('/conversations')
       setConversations(res.data.conversations || [])
     } catch (err) {
-      setError(err.message || 'Failed to fetch conversations')
+      showToast(err.message || 'Failed to fetch conversations', 'error')
     }
   }
 
@@ -79,7 +93,7 @@ const Dashboard = () => {
       const res = await api.get('/documents')
       setDocuments(res.data.documents || [])
     } catch (err) {
-      setError(err.message || 'Failed to fetch documents')
+      showToast(err.message || 'Failed to fetch documents', 'error')
     } finally {
       setLoadingDocs(false)
     }
@@ -98,22 +112,22 @@ const Dashboard = () => {
   }
 
   const selectConversation = async (id) => {
+    if (loadingHistory || loadingChat || uploadState.loading) return
     setActiveConversationId(id)
     setViewMode('chat')
     setLoadingHistory(true)
-    setError('')
     try {
       const res = await api.get(`/conversations/${id}`)
       setMessages(res.data.messages || [])
     } catch (err) {
-      setError(err.message || 'Failed to load chat history')
+      showToast(err.message || 'Failed to load chat history', 'error')
     } finally {
       setLoadingHistory(false)
     }
   }
 
   const handleNewConversation = async () => {
-    setError('')
+    if (loadingHistory || loadingChat || uploadState.loading) return
     try {
       const title = `Chat — ${new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}`
       const res = await api.post('/conversations', { title })
@@ -122,40 +136,38 @@ const Dashboard = () => {
       setActiveConversationId(newConv._id)
       setMessages([])
       setViewMode('chat')
+      showToast('New chat session created successfully.')
     } catch (err) {
-      setError(err.message || 'Failed to create new chat')
+      showToast(err.message || 'Failed to create new chat', 'error')
     }
   }
 
   const handleClearChat = async () => {
-    if (!activeConversationId) return
+    if (!activeConversationId || loadingHistory || loadingChat || uploadState.loading) return
     if (!window.confirm('Are you sure you want to archive this chat?')) return
     
-    setError('')
     try {
       await api.delete(`/conversations/${activeConversationId}`)
       setConversations(prev => prev.filter(c => c._id !== activeConversationId))
       setActiveConversationId(null)
       setMessages([])
+      showToast('Conversation archived successfully.')
     } catch (err) {
-      setError(err.message || 'Failed to archive conversation')
+      showToast(err.message || 'Failed to archive conversation', 'error')
     }
   }
 
   // ── Ingestion Pipeline ──────────────────────────────────────────────────────
 
-  const handleUploadClick = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click()
+  const triggerIngestionPipeline = async (file) => {
+    // Validate file type
+    const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain']
+    if (!validTypes.includes(file.type) && !file.name.endsWith('.docx') && !file.name.endsWith('.txt')) {
+      showToast('Invalid file format. Please upload PDF, DOCX, or TXT documents.', 'error')
+      return
     }
-  }
-
-  const handleFileUpload = async (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
 
     setUploadState({ loading: true, progress: 'Uploading...' })
-    setError('')
 
     const formData = new FormData()
     formData.append('document', file)
@@ -181,20 +193,63 @@ const Dashboard = () => {
       await api.post(`/documents/${docId}/chunk`)
 
       // Step 4: Generate Vectors (Embed)
-      setUploadState({ loading: true, progress: 'Generating vector embeddings...' })
+      setUploadState({ loading: true, progress: 'Generating vectors...' })
       await api.post(`/documents/${docId}/embed`)
 
       setUploadState({ loading: false, progress: '' })
       fetchDocuments()
       fetchAnalytics()
+      showToast(`${file.name} fully processed and indexed successfully!`)
     } catch (err) {
-      setError(err.message || 'Ingestion pipeline failed at some stage.')
+      showToast(err.message || 'Ingestion pipeline failed.', 'error')
       setUploadState({ loading: false, progress: '' })
       fetchDocuments()
-    } finally {
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
+    }
+  }
+
+  const handleUploadClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click()
+    }
+  }
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    await triggerIngestionPipeline(file)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  // Drag and Drop Handlers
+  const handleDragEnter = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (uploadState.loading) return
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }
+
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDrop = async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+    if (uploadState.loading) return
+
+    const files = e.dataTransfer.files
+    if (files && files.length > 0) {
+      await triggerIngestionPipeline(files[0])
     }
   }
 
@@ -202,9 +257,8 @@ const Dashboard = () => {
 
   const handleSendMessage = async (e) => {
     e.preventDefault()
-    if (!inputText.trim()) return
+    if (!inputText.trim() || loadingChat || loadingHistory || uploadState.loading) return
 
-    setError('')
     const questionText = inputText.trim()
     setInputText('')
 
@@ -220,7 +274,7 @@ const Dashboard = () => {
         currentConversationId = newConv._id
         setActiveConversationId(newConv._id)
       } catch (err) {
-        setError('Failed to auto-create conversation.')
+        showToast('Failed to auto-create conversation.', 'error')
         return
       }
     }
@@ -261,7 +315,7 @@ const Dashboard = () => {
       // Refresh conversations list to update messageCount/lastMessageAt
       fetchConversations()
     } catch (err) {
-      setError(err.message || 'Chat generation failed.')
+      showToast(err.message || 'Chat generation failed.', 'error')
       // Mark local message as error
       setMessages(prev => 
         prev.map(msg => 
@@ -285,8 +339,25 @@ const Dashboard = () => {
     return user.name.slice(0, 2).toUpperCase()
   }
 
+  // Prevent interactions blocker
+  const isActionPending = loadingChat || loadingHistory || uploadState.loading
+
   return (
     <>
+      {/* Toast Notification */}
+      {toast.show && (
+        <div className={`fixed top-20 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-xl border shadow-lg transition-all animate-fade-in ${
+          toast.type === 'success' 
+            ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
+            : 'bg-red-50 border-red-200 text-red-800'
+        }`}>
+          <span className="material-symbols-outlined text-[20px]">
+            {toast.type === 'success' ? 'check_circle' : 'error'}
+          </span>
+          <span className="font-body-md text-body-md font-medium">{toast.message}</span>
+        </div>
+      )}
+
       {/* Hidden File Input for Document Ingestion */}
       <input 
         type="file" 
@@ -294,10 +365,13 @@ const Dashboard = () => {
         onChange={handleFileUpload} 
         className="hidden" 
         accept=".pdf,.docx,.txt"
+        disabled={isActionPending}
       />
 
       {/* Sidebar Wrapper */}
-      <aside className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-[280px] bg-surface dark:bg-on-background border-r border-outline-variant dark:border-outline hidden lg:flex flex-col p-4 space-y-6 z-40">
+      <aside className={`fixed left-0 top-16 h-[calc(100vh-4rem)] w-[280px] bg-surface dark:bg-on-background border-r border-outline-variant dark:border-outline hidden lg:flex flex-col p-4 space-y-6 z-40 ${
+        isActionPending ? 'opacity-80' : ''
+      }`}>
         {/* Organization Header */}
         <div className="flex items-center gap-3 px-2">
           <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-white">
@@ -313,7 +387,7 @@ const Dashboard = () => {
         <div className="flex flex-col space-y-4">
           <button 
             onClick={handleUploadClick}
-            disabled={uploadState.loading}
+            disabled={isActionPending}
             className="w-full py-3 px-4 bg-primary text-white rounded-xl font-label-md text-label-md flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all shadow-sm disabled:opacity-50 disabled:pointer-events-none"
           >
             {uploadState.loading ? (
@@ -333,7 +407,16 @@ const Dashboard = () => {
             <p className="px-2 pb-2 text-[11px] font-bold text-outline uppercase tracking-widest">Recent Documents</p>
             <div className="flex flex-col space-y-1 max-h-[140px] overflow-y-auto custom-scrollbar">
               {loadingDocs ? (
-                <div className="px-2 py-4 text-center text-outline text-[12px]">Loading documents...</div>
+                // Document List Loading Skeleton
+                <div className="space-y-2.5 px-2 py-2 animate-pulse">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="flex items-center gap-3">
+                      <div className="w-5 h-5 bg-outline-variant/40 rounded"></div>
+                      <div className="flex-grow h-3 bg-outline-variant/40 rounded"></div>
+                      <div className="w-8 h-3.5 bg-outline-variant/40 rounded-full"></div>
+                    </div>
+                  ))}
+                </div>
               ) : documents.length === 0 ? (
                 <p className="text-[12px] text-outline italic px-2">No documents indexed yet.</p>
               ) : (
@@ -365,7 +448,8 @@ const Dashboard = () => {
             <p className="text-[11px] font-bold text-outline uppercase tracking-widest">Recent Chats</p>
             <button 
               onClick={handleNewConversation}
-              className="hover:text-primary transition-colors flex items-center"
+              disabled={isActionPending}
+              className="hover:text-primary transition-colors flex items-center disabled:opacity-50"
               title="New Chat"
             >
               <span className="material-symbols-outlined text-[18px]">add_circle</span>
@@ -373,10 +457,11 @@ const Dashboard = () => {
           </div>
           <div className="flex flex-col space-y-1 max-h-[150px] overflow-y-auto custom-scrollbar">
             {conversations.map(conv => (
-              <div 
+              <button 
                 key={conv._id} 
                 onClick={() => selectConversation(conv._id)}
-                className={`group flex items-center justify-between p-2 rounded-xl transition-colors cursor-pointer ${
+                disabled={isActionPending}
+                className={`group flex w-full items-center justify-between p-2 rounded-xl transition-colors text-left disabled:opacity-80 disabled:cursor-not-allowed ${
                   activeConversationId === conv._id 
                     ? 'bg-primary-fixed text-on-primary-fixed border border-primary/10' 
                     : 'hover:bg-surface-container text-on-surface-variant'
@@ -386,7 +471,7 @@ const Dashboard = () => {
                   <span className="material-symbols-outlined text-[18px] text-outline">chat_bubble</span>
                   <span className="text-body-md truncate">{conv.title}</span>
                 </div>
-              </div>
+              </button>
             ))}
             {conversations.length === 0 && (
               <p className="text-[12px] text-outline italic px-2">No recent chats.</p>
@@ -397,9 +482,10 @@ const Dashboard = () => {
         {/* Nav Navigation */}
         <div className="flex-grow flex flex-col space-y-1">
           <p className="px-2 pb-2 text-[11px] font-bold text-outline uppercase tracking-widest">Workspace</p>
-          <div 
+          <button 
+            disabled={isActionPending}
             onClick={() => setViewMode('analytics')}
-            className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors ${
+            className={`flex w-full items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors text-left disabled:opacity-80 ${
               viewMode === 'analytics' 
                 ? 'bg-secondary-container text-on-secondary-container' 
                 : 'text-secondary hover:bg-surface-container-low'
@@ -407,10 +493,11 @@ const Dashboard = () => {
           >
             <span className="material-symbols-outlined">analytics</span>
             <span className="font-label-md text-label-md">Analytic</span>
-          </div>
-          <div 
+          </button>
+          <button 
+            disabled={isActionPending}
             onClick={() => setViewMode('chat')}
-            className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors ${
+            className={`flex w-full items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors text-left disabled:opacity-80 ${
               viewMode === 'chat' 
                 ? 'bg-secondary-container text-on-secondary-container' 
                 : 'text-secondary hover:bg-surface-container-low'
@@ -418,7 +505,7 @@ const Dashboard = () => {
           >
             <span className="material-symbols-outlined">chat</span>
             <span className="font-label-md text-label-md">Active Workspace</span>
-          </div>
+          </button>
         </div>
         
         {/* Footer Links */}
@@ -436,7 +523,24 @@ const Dashboard = () => {
 
       {/* Main Content Canvas */}
       {viewMode === 'chat' ? (
-        <main className="lg:ml-[280px] pt-16 h-screen flex flex-col">
+        <main 
+          onDragEnter={handleDragEnter}
+          className="lg:ml-[280px] pt-16 h-screen flex flex-col relative"
+        >
+          {/* Full Screen Drag & Drop Overlay */}
+          {isDragging && (
+            <div 
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className="absolute inset-0 bg-primary/10 backdrop-blur-sm border-4 border-dashed border-primary z-50 flex flex-col items-center justify-center gap-4 transition-all duration-300 pointer-events-auto"
+            >
+              <span className="material-symbols-outlined text-[64px] text-primary animate-bounce">upload_file</span>
+              <h3 className="font-headline-md text-headline-md text-primary font-bold">Drop document to upload</h3>
+              <p className="font-body-md text-body-md text-outline">Supports PDF, DOCX, and TXT files</p>
+            </div>
+          )}
+
           {/* Chat Header */}
           <div className="h-14 border-b border-outline-variant bg-white flex items-center justify-between px-8 shrink-0">
             <div className="flex items-center gap-3">
@@ -465,7 +569,8 @@ const Dashboard = () => {
                 <div className="h-4 w-[1px] bg-outline-variant"></div>
                 <button 
                   onClick={handleClearChat}
-                  className="flex items-center gap-1.5 text-secondary text-label-md font-medium hover:text-error transition-colors"
+                  disabled={isActionPending}
+                  className="flex items-center gap-1.5 text-secondary text-label-md font-medium hover:text-error transition-colors disabled:opacity-50"
                 >
                   <span className="material-symbols-outlined text-[18px]">archive</span>
                   Archive Chat
@@ -480,14 +585,8 @@ const Dashboard = () => {
             className="flex-grow overflow-y-auto bg-surface-container-lowest p-8 custom-scrollbar"
           >
             <div className="max-w-4xl mx-auto space-y-10 pb-20">
-              {error && (
-                <div className="p-4 bg-error-container text-error rounded-xl border border-error/20 flex gap-2 items-center">
-                  <span className="material-symbols-outlined text-[20px]">error</span>
-                  <p className="font-body-md text-body-md font-medium">{error}</p>
-                </div>
-              )}
 
-              {/* Date Separator */}
+              {/* Active Chat Session Separator */}
               <div className="flex items-center gap-4">
                 <div className="h-[1px] flex-grow bg-outline-variant"></div>
                 <span className="text-[11px] font-bold text-outline uppercase tracking-widest">Active Chat Session</span>
@@ -495,16 +594,28 @@ const Dashboard = () => {
               </div>
 
               {loadingHistory ? (
-                <div className="flex flex-col items-center justify-center py-12 gap-2">
-                  <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                  <p className="text-secondary text-body-md">Loading messages...</p>
+                // Chat Loading Skeleton
+                <div className="space-y-8 animate-pulse">
+                  {[1, 2].map(i => (
+                    <div key={i} className="space-y-4">
+                      <div className="flex justify-end items-start gap-4">
+                        <div className="w-[50%] h-12 bg-outline-variant/30 rounded-2xl rounded-tr-none"></div>
+                        <div className="w-8 h-8 bg-outline-variant/30 rounded-full"></div>
+                      </div>
+                      <div className="flex justify-start items-start gap-4">
+                        <div className="w-8 h-8 bg-outline-variant/30 rounded-full"></div>
+                        <div className="w-[70%] h-20 bg-outline-variant/30 rounded-2xl rounded-tl-none"></div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : messages.length === 0 ? (
+                // Empty state
                 <div className="text-center py-20 space-y-4">
                   <span className="material-symbols-outlined text-outline text-[48px]">chat_bubble_outline</span>
                   <h3 className="font-headline-md text-headline-md text-on-surface">No messages here yet</h3>
                   <p className="font-body-md text-body-md text-secondary max-w-sm mx-auto">
-                    Type a question below to start chatting with your enterprise document corpus.
+                    Type a question below to start chatting with your enterprise document corpus. Or drag and drop documents directly here to upload them.
                   </p>
                 </div>
               ) : (
@@ -562,7 +673,10 @@ const Dashboard = () => {
                         {!msg.isLoading && (
                           <div className="flex items-center gap-4 px-2">
                             <button 
-                              onClick={() => navigator.clipboard.writeText(msg.answer)}
+                              onClick={() => {
+                                navigator.clipboard.writeText(msg.answer)
+                                showToast('Answer copied to clipboard!')
+                              }}
                               className="p-1.5 text-outline hover:text-primary hover:bg-surface-container rounded-md transition-all"
                               title="Copy Answer"
                             >
@@ -581,6 +695,8 @@ const Dashboard = () => {
                   </div>
                 ))
               )}
+              {/* Reference point for smooth scrolling */}
+              <div ref={messagesEndRef} />
             </div>
           </div>
           
@@ -594,23 +710,33 @@ const Dashboard = () => {
                     ref={textareaRef}
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
+                    disabled={isActionPending}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault()
                         handleSendMessage(e)
                       }
                     }}
-                    className="w-full resize-none border-none focus:ring-0 text-body-lg text-on-surface placeholder:text-outline/60 outline-none" 
-                    placeholder="Ask a question about your documents..." 
+                    className="w-full resize-none border-none focus:ring-0 text-body-lg text-on-surface placeholder:text-outline/60 outline-none disabled:opacity-50" 
+                    placeholder={isActionPending ? 'Please wait...' : 'Ask a question about your documents...'} 
                     rows="2"
                   />
                   <div className="flex items-center justify-between mt-2 pt-2 border-t border-outline-variant/30">
                     <div className="flex items-center gap-2">
-                      <button type="button" onClick={handleUploadClick} className="p-2 text-outline hover:bg-surface-container rounded-lg transition-colors flex items-center gap-2">
+                      <button 
+                        type="button" 
+                        onClick={handleUploadClick} 
+                        disabled={isActionPending}
+                        className="p-2 text-outline hover:bg-surface-container rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
+                      >
                         <span className="material-symbols-outlined">attach_file</span>
                         <span className="text-label-md">Attach</span>
                       </button>
-                      <button type="button" className="p-2 text-outline hover:bg-surface-container rounded-lg transition-colors flex items-center gap-2">
+                      <button 
+                        type="button" 
+                        disabled={isActionPending}
+                        className="p-2 text-outline hover:bg-surface-container rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
+                      >
                         <span className="material-symbols-outlined">language</span>
                         <span className="text-label-md">Web Search</span>
                       </button>
@@ -619,7 +745,7 @@ const Dashboard = () => {
                       <span className="text-[11px] text-outline font-medium">{inputText.length} / 2000</span>
                       <button 
                         type="submit"
-                        disabled={loadingChat || !inputText.trim()}
+                        disabled={isActionPending || !inputText.trim()}
                         className="bg-primary text-white p-2.5 rounded-xl flex items-center justify-center hover:shadow-lg active:scale-95 transition-all disabled:opacity-50"
                       >
                         <span className="material-symbols-outlined">send</span>
@@ -645,7 +771,7 @@ const Dashboard = () => {
               </div>
               <button 
                 onClick={() => setViewMode('chat')}
-                className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl font-label-md hover:opacity-90 transition-all"
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl font-label-md hover:opacity-90 transition-all shadow-sm"
               >
                 <span className="material-symbols-outlined text-[18px]">chat</span>
                 Back to Workspace
@@ -653,9 +779,18 @@ const Dashboard = () => {
             </div>
 
             {loadingAnalytics ? (
-              <div className="flex flex-col items-center justify-center py-20 gap-2">
-                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-secondary text-body-md">Loading analytics data...</p>
+              // Analytics Loading Skeleton
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-pulse">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="p-6 bg-white border border-outline-variant rounded-2xl h-40 flex flex-col justify-between">
+                    <div className="flex justify-between">
+                      <div className="w-24 h-4 bg-outline-variant/40 rounded"></div>
+                      <div className="w-6 h-6 bg-outline-variant/40 rounded-full"></div>
+                    </div>
+                    <div className="w-16 h-10 bg-outline-variant/40 rounded mt-4"></div>
+                    <div className="w-32 h-3.5 bg-outline-variant/40 rounded mt-2"></div>
+                  </div>
+                ))}
               </div>
             ) : analytics ? (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -686,25 +821,25 @@ const Dashboard = () => {
                   <div className="mt-4 flex flex-col gap-1 text-body-md font-medium text-on-surface-variant">
                     <div className="flex justify-between">
                       <span>Indexed</span>
-                      <span className="text-emerald-600">{analytics.documentsByStatus.indexed}</span>
+                      <span className="text-emerald-600 font-bold">{analytics.documentsByStatus.indexed}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Processing</span>
-                      <span className="text-amber-600">{analytics.documentsByStatus.processing}</span>
+                      <span className="text-amber-600 font-bold">{analytics.documentsByStatus.processing}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Uploaded</span>
-                      <span className="text-blue-600">{analytics.documentsByStatus.uploaded}</span>
+                      <span className="text-blue-600 font-bold">{analytics.documentsByStatus.uploaded}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Failed</span>
-                      <span className="text-red-600">{analytics.documentsByStatus.failed}</span>
+                      <span className="text-red-600 font-bold">{analytics.documentsByStatus.failed}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Largest Document Detail */}
-                {analytics.largestDocument && (
+                {analytics.largestDocument ? (
                   <div className="col-span-1 md:col-span-3 p-6 bg-white border border-outline-variant rounded-2xl shadow-sm space-y-4">
                     <h3 className="font-title-md text-title-md text-on-surface">Largest Document Overview</h3>
                     <div className="flex items-center justify-between p-4 bg-surface-container-low rounded-xl">
@@ -717,10 +852,14 @@ const Dashboard = () => {
                           </p>
                         </div>
                       </div>
-                      <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full font-label-md font-bold uppercase">
+                      <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full font-label-md font-bold uppercase shrink-0">
                         {analytics.largestDocument.status}
                       </span>
                     </div>
+                  </div>
+                ) : (
+                  <div className="col-span-1 md:col-span-3 p-10 bg-white border border-dashed border-outline-variant rounded-2xl text-center text-outline">
+                    No documents uploaded yet to compute size metrics.
                   </div>
                 )}
               </div>
