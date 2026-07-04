@@ -157,6 +157,18 @@ const Dashboard = () => {
     }
   }
 
+  const handleDeleteDocument = async (docId, docName) => {
+    if (uploadState.loading) return
+    if (!window.confirm(`Delete "${docName}"? This will remove the file and all its indexed data permanently.`)) return
+    try {
+      await api.delete(`/documents/${docId}`)
+      setDocuments(prev => prev.filter(d => d._id !== docId))
+      showToast('Document deleted successfully.')
+    } catch (err) {
+      showToast(err.message || 'Failed to delete document', 'error')
+    }
+  }
+
   // ── Ingestion Pipeline ──────────────────────────────────────────────────────
 
   const triggerIngestionPipeline = async (file) => {
@@ -423,18 +435,31 @@ const Dashboard = () => {
                 documents.map(doc => (
                   <div key={doc._id} className="group flex items-center justify-between p-2 rounded-xl hover:bg-surface-container transition-colors cursor-pointer">
                     <div className="flex items-center gap-3 overflow-hidden w-2/3">
-                      <span className="material-symbols-outlined text-outline">description</span>
+                      <span className={`material-symbols-outlined text-[20px] ${
+                        doc.status === 'failed' ? 'text-red-400' : 'text-outline'
+                      }`}>description</span>
                       <span className="text-body-md text-on-surface-variant truncate" title={doc.originalName}>
                         {doc.originalName}
                       </span>
                     </div>
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase shrink-0 ${
-                      doc.status === 'indexed' ? 'bg-emerald-100 text-emerald-700' :
-                      doc.status === 'failed' ? 'bg-red-100 text-red-700' :
-                      'bg-amber-100 text-amber-700'
-                    }`}>
-                      {doc.status}
-                    </span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
+                        doc.status === 'indexed' ? 'bg-emerald-100 text-emerald-700' :
+                        doc.status === 'failed' ? 'bg-red-100 text-red-700' :
+                        'bg-amber-100 text-amber-700'
+                      }`}>
+                        {doc.status}
+                      </span>
+                      {doc.status === 'failed' && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDeleteDocument(doc._id, doc.originalName) }}
+                          className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-red-400 hover:bg-red-100 hover:text-red-600 transition-all"
+                          title="Delete failed document"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">delete</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))
               )}

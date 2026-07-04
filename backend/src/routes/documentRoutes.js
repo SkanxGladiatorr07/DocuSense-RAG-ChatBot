@@ -97,14 +97,13 @@ router.get(
   getDocument
 );
 
-// ── DELETE /:id — delete document file, metadata, and chunks/embeddings (admin only)
+// ── DELETE /:id — delete document file, metadata, and chunks/embeddings (owner)
 //
-//   Returns 400 for a malformed id, 404 if not found.
+//   Returns 400 for a malformed id, 404 if not found or not owned by caller.
 //
 router.delete(
   '/:id',
   authenticate,
-  authorise('admin'),
   deleteDocument
 );
 

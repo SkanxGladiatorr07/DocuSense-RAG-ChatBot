@@ -26,7 +26,8 @@ const AppError            = require('../utils/AppError');
 const { documentService, embeddingPipelineService } = require('../services');
 
 // Absolute path to the uploads directory — mirrors the path used by Multer
-const UPLOADS_DIR = path.resolve(__dirname, '../../../uploads');
+// __dirname is backend/src/controllers, so ../../ goes up to backend/
+const UPLOADS_DIR = path.resolve(__dirname, '../../uploads');
 
 // ── POST /api/v1/documents/upload ─────────────────────────────────────────────
 
@@ -366,8 +367,8 @@ const deleteDocument = asyncHandler(async (req, res) => {
     throw AppError.badRequest(`"${id}" is not a valid document ID.`);
   }
 
-  // Admin bypass: pass null for userId to delete any document
-  const summary = await documentService.deleteDocument(id, null);
+  // Scope deletion to the authenticated user so they can only delete their own docs
+  const summary = await documentService.deleteDocument(id, req.user._id);
 
   return successResponse(res, 200, 'Document deleted successfully.', { summary });
 });
