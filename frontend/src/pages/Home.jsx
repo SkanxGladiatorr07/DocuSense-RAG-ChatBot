@@ -28,7 +28,7 @@ const Home = () => {
                 <Link to="/dashboard" className="px-8 py-3 bg-primary text-on-primary font-title-md text-title-md rounded-xl hover:bg-on-primary-fixed-variant transition-all active:scale-[0.98] shadow-lg shadow-primary/10">
                   Open Dashboard
                 </Link>
-                <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="px-8 py-3 bg-surface border border-outline-variant text-on-surface font-title-md text-title-md rounded-xl hover:bg-surface-container transition-all active:scale-[0.98] flex items-center gap-2">
+                <a href="https://github.com/SkanxGladiatorr07/DocuSense-RAG-ChatBot" target="_blank" rel="noopener noreferrer" className="px-8 py-3 bg-surface border border-outline-variant text-on-surface font-title-md text-title-md rounded-xl hover:bg-surface-container transition-all active:scale-[0.98] flex items-center gap-2">
                   <span className="material-symbols-outlined">code</span>
                   View on GitHub
                 </a>

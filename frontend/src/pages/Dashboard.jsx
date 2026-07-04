@@ -81,7 +81,7 @@ const Dashboard = () => {
   const fetchConversations = async () => {
     try {
       const res = await api.get('/conversations')
-      setConversations(res.data.conversations || [])
+      setConversations(res.data.data.conversations || [])
     } catch (err) {
       showToast(err.message || 'Failed to fetch conversations', 'error')
     }
@@ -91,7 +91,7 @@ const Dashboard = () => {
     setLoadingDocs(true)
     try {
       const res = await api.get('/documents')
-      setDocuments(res.data.documents || [])
+      setDocuments(res.data.data.documents || [])
     } catch (err) {
       showToast(err.message || 'Failed to fetch documents', 'error')
     } finally {
@@ -103,7 +103,7 @@ const Dashboard = () => {
     setLoadingAnalytics(true)
     try {
       const res = await api.get('/documents/analytics')
-      setAnalytics(res.data || null)
+      setAnalytics(res.data.data || null)
     } catch (err) {
       console.error('Failed to fetch analytics:', err)
     } finally {
@@ -118,7 +118,7 @@ const Dashboard = () => {
     setLoadingHistory(true)
     try {
       const res = await api.get(`/conversations/${id}`)
-      setMessages(res.data.messages || [])
+      setMessages(res.data.data.messages || [])
     } catch (err) {
       showToast(err.message || 'Failed to load chat history', 'error')
     } finally {
@@ -131,7 +131,7 @@ const Dashboard = () => {
     try {
       const title = `Chat — ${new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}`
       const res = await api.post('/conversations', { title })
-      const newConv = res.data.conversation
+      const newConv = res.data.data.conversation
       setConversations(prev => [newConv, ...prev])
       setActiveConversationId(newConv._id)
       setMessages([])
