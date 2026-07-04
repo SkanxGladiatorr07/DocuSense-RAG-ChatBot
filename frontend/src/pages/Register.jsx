@@ -19,7 +19,7 @@ const Register = () => {
     
     try {
       await register(name, email, password)
-      navigate('/dashboard')
+      navigate('/dashboard', { replace: true })
     } catch (err) {
       setError(err.message || 'Failed to create account. Please try again.')
     } finally {
