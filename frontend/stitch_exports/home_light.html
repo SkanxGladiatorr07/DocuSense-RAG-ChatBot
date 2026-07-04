@@ -1,0 +1,449 @@
+<!DOCTYPE html><html class="light" lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>DocuSense | Enterprise RAG Platform</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface": "#fcf8fb",
+                        "secondary": "#5d5e66",
+                        "tertiary-container": "#a44100",
+                        "on-primary-fixed-variant": "#3323cc",
+                        "outline-variant": "#c7c4d8",
+                        "outline": "#777587",
+                        "on-primary-fixed": "#0f0069",
+                        "on-background": "#1c1b1d",
+                        "secondary-fixed-dim": "#c6c5cf",
+                        "error": "#ba1a1a",
+                        "inverse-surface": "#313032",
+                        "tertiary-fixed-dim": "#ffb695",
+                        "on-secondary-fixed-variant": "#46464e",
+                        "on-tertiary-fixed": "#351000",
+                        "secondary-fixed": "#e3e1ec",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "surface-dim": "#dcd9dc",
+                        "on-secondary-fixed": "#1a1b22",
+                        "tertiary-fixed": "#ffdbcc",
+                        "inverse-on-surface": "#f3f0f2",
+                        "on-secondary-container": "#63646c",
+                        "on-error-container": "#93000a",
+                        "on-surface": "#1c1b1d",
+                        "on-primary-container": "#dad7ff",
+                        "surface-tint": "#4d44e3",
+                        "background": "#fcf8fb",
+                        "surface-variant": "#e5e1e4",
+                        "primary": "#3525cd",
+                        "on-tertiary-container": "#ffd2be",
+                        "on-surface-variant": "#464555",
+                        "on-tertiary-fixed-variant": "#7b2f00",
+                        "surface-bright": "#fcf8fb",
+                        "on-primary": "#ffffff",
+                        "tertiary": "#7e3000",
+                        "primary-fixed": "#e2dfff",
+                        "primary-fixed-dim": "#c3c0ff",
+                        "surface-container-low": "#f6f2f5",
+                        "error-container": "#ffdad6",
+                        "inverse-primary": "#c3c0ff",
+                        "primary-container": "#4f46e5",
+                        "surface-container-high": "#eae7ea",
+                        "surface-container": "#f0edf0",
+                        "on-error": "#ffffff",
+                        "secondary-container": "#e3e1ec",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-highest": "#e5e1e4"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "12": "3rem",
+                        "0": "0",
+                        "1": "0.25rem",
+                        "4": "1rem",
+                        "2": "0.5rem",
+                        "6": "1.5rem",
+                        "container-max": "1440px",
+                        "8": "2rem",
+                        "3": "0.75rem",
+                        "gutter": "1.5rem",
+                        "16": "4rem"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "code": ["JetBrains Mono"],
+                        "headline-lg": ["Inter"],
+                        "title-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "display": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "code": ["13px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "headline-lg": ["30px", {"lineHeight": "38px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "title-md": ["18px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "display": ["36px", {"lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(228, 228, 231, 0.5);
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface">
+<!-- Top Navigation Bar -->
+<nav class="fixed top-0 w-full z-50 bg-surface border-b border-outline-variant">
+<div class="flex justify-between items-center px-6 h-16 w-full max-w-container-max mx-auto">
+<div class="flex items-center gap-8">
+<span class="text-title-md font-title-md font-bold text-primary">DocuSense</span>
+<div class="hidden md:flex gap-6">
+<a class="font-body-md text-body-md text-primary font-bold border-b-2 border-primary pb-1 transition-all duration-200" href="#">Home</a>
+<a class="font-body-md text-body-md text-secondary hover:text-primary transition-colors" href="#">Dashboard</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden lg:block">
+<input class="pl-10 pr-4 py-1.5 rounded-full border border-outline-variant bg-surface-container-low text-body-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all w-64" placeholder="Search knowledge..." type="text">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+</div>
+<button class="p-2 text-secondary hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 text-secondary hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button><button class="flex items-center gap-2 px-3 py-1.5 rounded-full border border-outline-variant text-secondary hover:text-primary hover:bg-surface-container transition-all" aria-label="Toggle Dark Mode">
+  <span class="material-symbols-outlined text-[20px]" data-icon="dark_mode">dark_mode</span>
+  <span class="font-label-md text-label-md">Dark Mode</span>
+</button>
+<div class="h-8 w-8 rounded-full bg-primary-fixed overflow-hidden border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a corporate technology executive, clean lighting, minimalist studio background, high-resolution portrait photography style, soft shadows, neutral expression, professional attire." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBYyXWsQCxCZ3bQwDue48HEUq9iUQuEoR4ewNXXkxv0T6p5wR9ZSDXGzmKP5SPO9p1YRdcnjlwYQagTFNtSp39Pjo5zXco6ZTVasKQy1OA8UQmauBt0ZLiLXe-5RvuhBFcf4FKu-sLTGJUCjhfwoOq8vtpse0d_NPpKcMFWo-53BBTFveIejNq3U7yYkZNBHJxNZD5bvOZLV_SznkPvzkLLCvgpRqyuErQtgWaUKc0R1Wzy3AbuyNKdIQ">
+</div>
+</div>
+</div>
+</nav>
+<!-- Main Content -->
+<main class="pt-16">
+<!-- Hero Section -->
+<section class="relative overflow-hidden pt-24 pb-32 px-6">
+<!-- Atmospheric Gradient -->
+<div class="absolute top-0 right-0 -z-10 w-1/2 h-full opacity-20 pointer-events-none">
+<div class="absolute inset-0 bg-gradient-to-l from-primary/30 to-transparent blur-3xl rounded-full"></div>
+</div>
+<div class="max-w-container-max mx-auto grid lg:grid-cols-2 gap-12 items-center">
+<div class="space-y-8">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-fixed text-on-primary-fixed border border-on-primary-fixed-variant/10">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<span class="font-label-md text-label-md">Next-Gen RAG Architecture</span>
+</div>
+<h1 class="font-display text-display tracking-tight text-on-surface">
+                        Chat with your <br>
+<span class="text-primary">Company Documents</span>
+</h1>
+<p class="font-body-lg text-body-lg text-secondary max-w-xl leading-relaxed">
+                        Unlock organizational intelligence with Retrieval-Augmented Generation. Connect your data silos and get grounded, hallucination-free answers cited directly from your internal sources.
+                    </p>
+<div class="flex flex-wrap gap-4 pt-4">
+<button class="px-8 py-3 bg-primary text-on-primary font-title-md text-title-md rounded-xl hover:bg-on-primary-fixed-variant transition-all active:scale-[0.98] shadow-lg shadow-primary/10">
+                            Open Dashboard
+                        </button>
+<button class="px-8 py-3 bg-surface border border-outline-variant text-on-surface font-title-md text-title-md rounded-xl hover:bg-surface-container transition-all active:scale-[0.98] flex items-center gap-2">
+<span class="material-symbols-outlined" data-icon="code">code</span>
+                            View on GitHub
+                        </button>
+</div>
+<div class="flex items-center gap-6 pt-8 border-t border-outline-variant/30">
+<div class="flex -space-x-3">
+<div class="w-10 h-10 rounded-full border-2 border-surface bg-slate-200 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A professional woman smiling in a corporate setting, soft studio lighting, sharp focus, high-quality digital photography, corporate team member representation." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAdIJqVId9w38PK6L40yotYxOGa8hKp-u-HlJqtFX8ntTLGNd5aN2qoX6GshE9LbuP9bs6AI2aJdOgtl5ILhOQMBZEGU_z7nnBrTxJc22RFH2XWHjMJN47-QP1aNl3Ehfh2gkDhSC7IksreBl5eKBMTKcjHNy2ekMusS4WqEelSfZnrMWPYswGfkI4wC-ThHXWM7CNIhseR5_h3UVRzt6TCLLNQX9V26UMIO30BXpZjFG-LSDaz6hV-9w">
+</div>
+<div class="w-10 h-10 rounded-full border-2 border-surface bg-slate-300 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A man with glasses in a professional technology office, minimalist aesthetic, cinematic lighting, corporate portraiture, high-resolution image." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBI1G453UpuQNIDu9K083MiQH8na055nAwOCBmOD2IPTCY6Oes3BX3VrYEjuo_UQSun6AR9aERSKZKiTJYYtjNb6RoshzRzZhxECk7DE3oAVfuM_jHf25aPqgpX9Ht3fbS8xS43Sv0136D0NJ-5HkMi1yVu9wIAObBf1IjcqRonoYbJRfmLSL7PSC5VfAm7tjZhScZjGxfXlj86wjKfCtYkm-FmaIh56QyuZRt5MJex8KXkxlUi10X0Sg">
+</div>
+<div class="w-10 h-10 rounded-full border-2 border-surface bg-slate-400 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Close-up portrait of a tech professional, bright natural lighting, professional business environment background, sharp details, modern corporate style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBjcxKNGSqwpBcFvi6HD9VElHDsPkObAnTtOPjTIxKsK_SL-n9SmFWN8NrrmA896OVk-dMw683yIJXxDPTkO2RsukMofRStX0_LXrET5FksSz9hiuLXpnvl4UORDHNaSXPL3557wPeC3-HxnEPmq_shEulx4mQWa-p4PEa8XWmradfWI85rqmgVeHlBbs_6RJXRRczSdQcEej84N0gsfBNQ2OZzKtAvE8wjJwB_oFt4PLbacd06W9wkQ">
+</div>
+</div>
+<p class="font-label-md text-label-md text-secondary">
+                            Trusted by <span class="font-bold text-on-surface">2,400+</span> enterprise teams worldwide.
+                        </p>
+</div>
+</div>
+<!-- Hero Image Component: Bento-style UI preview -->
+<div class="relative lg:h-[600px] flex items-center justify-center">
+<div class="relative w-full max-w-lg">
+<!-- Main Preview Card -->
+<div class="glass-card p-6 rounded-2xl shadow-2xl relative z-10">
+<div class="flex items-center justify-between mb-6 border-b border-outline-variant pb-4">
+<div class="flex gap-2">
+<div class="w-3 h-3 rounded-full bg-red-400"></div>
+<div class="w-3 h-3 rounded-full bg-amber-400"></div>
+<div class="w-3 h-3 rounded-full bg-emerald-400"></div>
+</div>
+<span class="text-label-md font-label-md text-outline">docusense_query.v2</span>
+</div>
+<div class="space-y-6">
+<div class="flex gap-4 items-start">
+<div class="w-8 h-8 rounded bg-surface-container flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]" data-icon="person">person</span>
+</div>
+<div class="bg-surface-container-low p-4 rounded-xl rounded-tl-none border border-outline-variant">
+<p class="font-body-md text-body-md">What's our policy on remote work for Q3?</p>
+</div>
+</div>
+<div class="flex gap-4 items-start">
+<div class="w-8 h-8 rounded bg-primary-container flex items-center justify-center flex-shrink-0 text-on-primary-container">
+<span class="material-symbols-outlined text-[18px]" data-icon="smart_toy" style="font-variation-settings: 'FILL' 1;">smart_toy</span>
+</div>
+<div class="p-4 rounded-xl rounded-tl-none border border-primary/20 space-y-3">
+<p class="font-body-md text-body-md leading-relaxed">According to the <span class="text-primary font-medium underline">Employee_Handbook_2024.pdf [1]</span>, employees can work remotely up to 3 days per week starting July 1st.</p>
+<div class="flex items-center gap-2 pt-2 border-t border-outline-variant">
+<span class="font-label-md text-label-md text-outline">Sources:</span>
+<span class="px-2 py-0.5 rounded-full border border-outline-variant font-code text-code text-outline bg-surface-container-lowest">Doc #1024</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Floating Accents -->
+<div class="absolute -top-12 -right-12 glass-card p-4 rounded-xl shadow-xl z-20 hidden md:block">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary" data-icon="analytics">analytics</span>
+<div>
+<p class="font-label-md text-label-md text-outline">Indexing Speed</p>
+<p class="font-title-md text-title-md font-bold">1.2 GB/sec</p>
+</div>
+</div>
+</div>
+<div class="absolute -bottom-10 -left-12 glass-card p-4 rounded-xl shadow-xl z-20 hidden md:block">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+<p class="font-label-md text-label-md font-medium">99.8% Accuracy Score</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Feature Section -->
+<section class="py-32 px-6 bg-surface-container-low/30">
+<div class="max-w-container-max mx-auto">
+<div class="text-center mb-20 space-y-4">
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Precision-Engineered Intelligence</h2>
+<p class="font-body-lg text-body-lg text-secondary max-w-2xl mx-auto">
+                        DocuSense leverages sophisticated vector search and large language models to turn static documents into interactive conversations.
+                    </p>
+</div>
+<div class="grid md:grid-cols-3 gap-8">
+<!-- Card 1: Upload -->
+<div class="group p-8 rounded-2xl border border-outline-variant bg-surface hover:shadow-xl transition-all duration-300 duration-700 opacity-100 translate-y-0">
+<div class="w-12 h-12 rounded-xl bg-primary-fixed flex items-center justify-center text-primary mb-6 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-[28px]" data-icon="upload_file">upload_file</span>
+</div>
+<h3 class="font-title-md text-title-md text-on-surface mb-3">Upload Documents</h3>
+<p class="font-body-md text-body-md text-secondary leading-relaxed mb-6">
+                            Native support for PDFs, Word documents, Markdown, and text files. Our ingestion pipeline handles OCR and complex table parsing automatically.
+                        </p>
+<ul class="space-y-3">
+<li class="flex items-center gap-2 text-label-md font-label-md text-outline">
+<span class="material-symbols-outlined text-[18px] text-primary">check_circle</span>
+                                Multi-format ingestion
+                            </li>
+<li class="flex items-center gap-2 text-label-md font-label-md text-outline">
+<span class="material-symbols-outlined text-[18px] text-primary">check_circle</span>
+                                Cloud storage sync
+                            </li>
+</ul>
+</div>
+<!-- Card 2: Search -->
+<div class="group p-8 rounded-2xl border border-outline-variant bg-surface hover:shadow-xl transition-all duration-300 duration-700 opacity-100 translate-y-0">
+<div class="w-12 h-12 rounded-xl bg-primary-fixed flex items-center justify-center text-primary mb-6 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-[28px]" data-icon="manage_search">manage_search</span>
+</div>
+<h3 class="font-title-md text-title-md text-on-surface mb-3">Semantic Search</h3>
+<p class="font-body-md text-body-md text-secondary leading-relaxed mb-6">
+                            Beyond keyword matching. We use state-of-the-art vector embeddings to understand the intent and context of your queries.
+                        </p>
+<ul class="space-y-3">
+<li class="flex items-center gap-2 text-label-md font-label-md text-outline">
+<span class="material-symbols-outlined text-[18px] text-primary">check_circle</span>
+                                Vector-space clustering
+                            </li>
+<li class="flex items-center gap-2 text-label-md font-label-md text-outline">
+<span class="material-symbols-outlined text-[18px] text-primary">check_circle</span>
+                                Metadata filtering
+                            </li>
+</ul>
+</div>
+<!-- Card 3: Answers -->
+<div class="group p-8 rounded-2xl border border-outline-variant bg-surface hover:shadow-xl transition-all duration-300 duration-700 opacity-100 translate-y-0">
+<div class="w-12 h-12 rounded-xl bg-primary-fixed flex items-center justify-center text-primary mb-6 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-[28px]" data-icon="chat_bubble">chat_bubble</span>
+</div>
+<h3 class="font-title-md text-title-md text-on-surface mb-3">AI-Powered Answers</h3>
+<p class="font-body-md text-body-md text-secondary leading-relaxed mb-6">
+                            Grounded answers backed by verifiable citations. Every claim made by the AI includes a direct link to the source document for auditability.
+                        </p>
+<ul class="space-y-3">
+<li class="flex items-center gap-2 text-label-md font-label-md text-outline">
+<span class="material-symbols-outlined text-[18px] text-primary">check_circle</span>
+                                Grounded generation
+                            </li>
+<li class="flex items-center gap-2 text-label-md font-label-md text-outline">
+<span class="material-symbols-outlined text-[18px] text-primary">check_circle</span>
+                                Audit trail citations
+                            </li>
+</ul>
+</div>
+</div>
+</div>
+</section>
+<!-- Dynamic Integration Section (Bento Grid) -->
+<section class="py-32 px-6">
+<div class="max-w-container-max mx-auto">
+<div class="grid grid-cols-1 md:grid-cols-4 grid-rows-2 gap-4 h-[600px]">
+<div class="md:col-span-2 md:row-span-2 rounded-2xl border border-outline-variant overflow-hidden relative group transition-all duration-700 opacity-100 translate-y-0">
+<div class="absolute inset-0 bg-gradient-to-t from-on-background/80 to-transparent z-10"></div>
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" data-alt="A futuristic data center corridor with glowing blue and indigo lights, minimalist high-tech architecture, symmetrical perspective, crisp details, enterprise technology atmosphere." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAM3u6TbnIJlUkOKcaVh0Tinyq6Den1VH_TjCokTWXuDTTzUTbqP51_0LdORcxX6eSkxHKa3H7AuasBoH8kQuFSLlm6Ku9aFa1z8XcLKt_dTfx3uSjuViAOPWaNuf_FQ4jIc7yLHUbPu0BRwzXXNuJQQTY8vlB-lr-eXqyyE-8QT0y9Wz2W5V8GoPp0JHdLDnoz7xLyT3YASm-E3hwfPogKk1KGi7gXW-zkGDPs_r83PIO4SN9SiIgQwg">
+<div class="absolute bottom-8 left-8 z-20 text-white">
+<h4 class="font-headline-md text-headline-md mb-2">Secure Core Infrastructure</h4>
+<p class="font-body-md text-body-md text-zinc-300 max-w-sm">Enterprise-grade security with SOC2 compliance and end-to-end encryption for all document fragments.</p>
+</div>
+</div>
+<div class="md:col-span-2 bg-surface-container rounded-2xl border border-outline-variant p-8 flex flex-col justify-between">
+<div>
+<span class="material-symbols-outlined text-primary text-[32px] mb-4" data-icon="hub">hub</span>
+<h4 class="font-title-md text-title-md text-on-surface mb-2">Seamless Integration</h4>
+<p class="font-body-md text-body-md text-secondary">Connect to Slack, Notion, and Google Drive in minutes with our native connectors.</p>
+</div>
+<div class="flex gap-4">
+<div class="w-10 h-10 rounded-lg bg-white border border-outline-variant flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="share">share</span>
+</div>
+<div class="w-10 h-10 rounded-lg bg-white border border-outline-variant flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="cloud">cloud</span>
+</div>
+</div>
+</div>
+<div class="md:col-span-1 bg-primary text-on-primary rounded-2xl p-8 flex flex-col justify-center text-center">
+<p class="text-display font-display leading-none mb-1">0.3s</p>
+<p class="font-label-md text-label-md uppercase tracking-wider opacity-80">Latency</p>
+</div>
+<div class="md:col-span-1 border border-outline-variant rounded-2xl p-8 flex flex-col justify-center text-center bg-surface">
+<p class="text-display font-display leading-none mb-1 text-on-surface">50M+</p>
+<p class="font-label-md text-label-md uppercase tracking-wider text-outline">Docs Indexed</p>
+</div>
+</div>
+</div>
+</section>
+<!-- CTA Section -->
+<section class="py-24 px-6 bg-on-background text-white relative overflow-hidden">
+<div class="absolute top-0 left-0 w-full h-full opacity-10">
+<div class="absolute inset-0" style="background-image: radial-gradient(circle at 2px 2px, #fff 1px, transparent 0); background-size: 40px 40px;"></div>
+</div>
+<div class="max-w-container-max mx-auto text-center relative z-10">
+<h2 class="font-display text-display mb-6">Ready to talk to your data?</h2>
+<p class="font-body-lg text-body-lg text-zinc-400 mb-10 max-w-xl mx-auto">
+                    Deploy DocuSense in your infrastructure or use our managed cloud. Start your 14-day free trial today.
+                </p>
+<div class="flex justify-center gap-6">
+<button class="px-10 py-4 bg-primary rounded-xl font-title-md text-title-md hover:bg-on-primary-fixed-variant transition-all shadow-xl shadow-primary/20">
+                        Get Started Free
+                    </button>
+<button class="px-10 py-4 border border-zinc-700 rounded-xl font-title-md text-title-md hover:bg-zinc-800 transition-all">
+                        Schedule Demo
+                    </button>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-surface py-16 px-6 border-t border-outline-variant">
+<div class="max-w-container-max mx-auto grid md:grid-cols-4 gap-12">
+<div class="col-span-1 space-y-4">
+<span class="text-title-md font-title-md font-bold text-primary">DocuSense</span>
+<p class="font-body-md text-body-md text-secondary">Advanced retrieval systems for the modern enterprise.</p>
+<div class="flex gap-4">
+<a class="text-secondary hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined">public</span></a>
+<a class="text-secondary hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined">terminal</span></a>
+</div>
+</div>
+<div>
+<h5 class="font-title-md text-title-md text-on-surface mb-6">Product</h5>
+<ul class="space-y-4 font-body-md text-body-md text-secondary">
+<li class=""><a class="hover:text-primary transition-colors" href="#">Features</a></li>
+<li class=""><a class="hover:text-primary transition-colors" href="#">Security</a></li>
+<li class=""><a class="hover:text-primary transition-colors" href="#">Pricing</a></li>
+</ul>
+</div>
+<div>
+<h5 class="font-title-md text-title-md text-on-surface mb-6">Resources</h5>
+<ul class="space-y-4 font-body-md text-body-md text-secondary">
+<li class=""><a class="hover:text-primary transition-colors" href="#">Documentation</a></li>
+<li class=""><a class="hover:text-primary transition-colors" href="#">API Reference</a></li>
+<li class=""><a class="hover:text-primary transition-colors" href="#">Blog</a></li>
+</ul>
+</div>
+<div>
+<h5 class="font-title-md text-title-md text-on-surface mb-6">Company</h5>
+<ul class="space-y-4 font-body-md text-body-md text-secondary">
+<li class=""><a class="hover:text-primary transition-colors" href="#">About Us</a></li>
+<li class=""><a class="hover:text-primary transition-colors" href="#">Careers</a></li>
+<li class=""><a class="hover:text-primary transition-colors" href="#">Privacy</a></li>
+</ul>
+</div>
+</div>
+<div class="max-w-container-max mx-auto mt-16 pt-8 border-t border-outline-variant flex flex-col md:flex-row justify-between items-center gap-4">
+<p class="font-label-md text-label-md text-outline">© 2024 DocuSense Inc. All rights reserved.</p>
+<p class="font-label-md text-label-md text-outline">Built with Precision by DocuSense Core Team.</p>
+</div>
+</footer>
+<script>
+        // Micro-interactions and subtle scroll effects
+        document.addEventListener('DOMContentLoaded', () => {
+            const observerOptions = {
+                threshold: 0.1
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('opacity-100', 'translate-y-0');
+                        entry.target.classList.remove('opacity-0', 'translate-y-10');
+                    }
+                });
+            }, observerOptions);
+
+            document.querySelectorAll('.group').forEach(el => {
+                el.classList.add('transition-all', 'duration-700', 'opacity-0', 'translate-y-10');
+                observer.observe(el);
+            });
+        });
+    </script>
+
+
+</body></html>

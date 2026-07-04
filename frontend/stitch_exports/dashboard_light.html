@@ -1,0 +1,370 @@
+<!DOCTYPE html><html class="light" lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>DocuSense | Dashboard Workspace</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind Config Verification -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface": "#fcf8fb",
+                    "secondary": "#5d5e66",
+                    "tertiary-container": "#a44100",
+                    "on-primary-fixed-variant": "#3323cc",
+                    "outline-variant": "#c7c4d8",
+                    "outline": "#777587",
+                    "on-primary-fixed": "#0f0069",
+                    "on-background": "#1c1b1d",
+                    "secondary-fixed-dim": "#c6c5cf",
+                    "error": "#ba1a1a",
+                    "inverse-surface": "#313032",
+                    "tertiary-fixed-dim": "#ffb695",
+                    "on-secondary-fixed-variant": "#46464e",
+                    "on-tertiary-fixed": "#351000",
+                    "secondary-fixed": "#e3e1ec",
+                    "on-secondary": "#ffffff",
+                    "on-tertiary": "#ffffff",
+                    "surface-dim": "#dcd9dc",
+                    "on-secondary-fixed": "#1a1b22",
+                    "tertiary-fixed": "#ffdbcc",
+                    "inverse-on-surface": "#f3f0f2",
+                    "on-secondary-container": "#63646c",
+                    "on-error-container": "#93000a",
+                    "on-surface": "#1c1b1d",
+                    "on-primary-container": "#dad7ff",
+                    "surface-tint": "#4d44e3",
+                    "background": "#fcf8fb",
+                    "surface-variant": "#e5e1e4",
+                    "primary": "#3525cd",
+                    "on-tertiary-container": "#ffd2be",
+                    "on-surface-variant": "#464555",
+                    "on-tertiary-fixed-variant": "#7b2f00",
+                    "surface-bright": "#fcf8fb",
+                    "on-primary": "#ffffff",
+                    "tertiary": "#7e3000",
+                    "primary-fixed": "#e2dfff",
+                    "primary-fixed-dim": "#c3c0ff",
+                    "surface-container-low": "#f6f2f5",
+                    "error-container": "#ffdad6",
+                    "inverse-primary": "#c3c0ff",
+                    "primary-container": "#4f46e5",
+                    "surface-container-high": "#eae7ea",
+                    "surface-container": "#f0edf0",
+                    "on-error": "#ffffff",
+                    "secondary-container": "#e3e1ec",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-container-highest": "#e5e1e4"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "12": "3rem",
+                    "0": "0",
+                    "1": "0.25rem",
+                    "4": "1rem",
+                    "2": "0.5rem",
+                    "6": "1.5rem",
+                    "container-max": "1440px",
+                    "8": "2rem",
+                    "3": "0.75rem",
+                    "gutter": "1.5rem",
+                    "16": "4rem"
+            },
+            "fontFamily": {
+                    "label-md": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "code": ["JetBrains Mono"],
+                    "title-md": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "body-md": ["Inter"],
+                    "display": ["Inter"]
+            },
+            "fontSize": {
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                    "code": ["13px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-lg": ["30px", {"lineHeight": "38px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "title-md": ["18px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "display": ["36px", {"lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #c7c4d8; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #777587; }
+        .chat-container { height: calc(100vh - 4rem - 120px); }
+    </style>
+</head>
+<body class="bg-surface text-on-surface">
+<!-- TopNavBar -->
+<header class="fixed top-0 w-full z-50 bg-surface dark:bg-on-background border-b border-outline-variant dark:border-outline h-16">
+<div class="flex justify-between items-center px-6 h-full w-full max-w-container-max mx-auto">
+<div class="flex items-center gap-8">
+<span class="text-title-md font-title-md font-bold text-primary dark:text-primary-fixed">DocuSense</span>
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-secondary dark:text-secondary-fixed-dim hover:text-primary dark:hover:text-primary-fixed transition-colors font-body-md text-body-md" href="#">Home</a>
+<a class="text-primary dark:text-primary-fixed font-bold border-b-2 border-primary pb-1 font-body-md text-body-md" href="#">Dashboard</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="pl-10 pr-4 py-2 bg-surface-container-low border border-outline-variant rounded-lg text-body-md focus:outline-none focus:ring-2 focus:ring-primary/20 w-64 transition-all" placeholder="Search workspace..." type="text">
+</div>
+<button class="flex items-center gap-2 px-3 py-2 text-secondary hover:bg-surface-container rounded-lg transition-colors" title="Toggle Dark Mode">
+  <span class="material-symbols-outlined">dark_mode</span>
+  <span class="text-label-md font-label-md">Dark Mode</span>
+</button><button class="p-2 text-secondary hover:bg-surface-container rounded-full transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-secondary hover:bg-surface-container rounded-full transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="h-8 w-8 rounded-full bg-primary-container overflow-hidden border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="A professional close-up headshot of a female data analyst with a confident expression, set against a blurred high-tech office background with soft blue and white ambient lighting. The aesthetic is clean, professional, and modern, matching a corporate enterprise software environment with high-key lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCE3nkD2Junj5ZwxQnp26DD_VoBqyHgdTdbJ51pH0XDiSb3jxg4Q4FAaiIH9kqb4S7I695CEq12VlFUYGFHarnWSMLNXP7Jpjum8g48rZffTsJ7DKfnGEVHMls05AWaQhf2WGC9fg_uxh-J7ikvwu1R1VyJ8gPC7j8VL35LGHDsFVB3OqxKzTh9Ntnwzke03_TzNzu3j-fKt8kiz6yrHj8wc8V8tbl8HxU4hbqU36SwSeBY_MnGKXmOhg">
+</div>
+</div>
+</div>
+</header>
+<!-- Sidebar Wrapper -->
+<aside class="fixed left-0 top-16 h-[calc(100vh-4rem)] w-[280px] bg-surface dark:bg-on-background border-r border-outline-variant dark:border-outline hidden lg:flex flex-col p-4 space-y-6">
+<!-- Organization Header -->
+<div class="flex items-center gap-3 px-2">
+<div class="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-white">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">business_center</span>
+</div>
+<div>
+<h2 class="text-label-md font-bold text-on-surface">Enterprise RAG</h2>
+<p class="text-[10px] text-outline font-medium tracking-wider">V2.4.0</p>
+</div>
+</div>
+<!-- Document Management Section -->
+<div class="flex flex-col space-y-4">
+<button class="w-full py-3 px-4 bg-primary text-white rounded-xl font-label-md text-label-md flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all shadow-sm">
+<span class="material-symbols-outlined text-[20px]">upload_file</span>
+                Upload Document
+            </button>
+<div class="space-y-1">
+<p class="px-2 pb-2 text-[11px] font-bold text-outline uppercase tracking-widest">Recent Documents</p>
+<!-- Document Items -->
+<div class="flex flex-col space-y-1">
+<div class="group flex items-center justify-between p-2 rounded-xl hover:bg-surface-container transition-colors cursor-pointer">
+<div class="flex items-center gap-3 overflow-hidden">
+<span class="material-symbols-outlined text-outline">description</span>
+<span class="text-body-md text-on-surface-variant truncate">Q4_Financials.pdf</span>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold">Indexed</span>
+</div>
+<div class="group flex items-center justify-between p-2 rounded-xl hover:bg-surface-container transition-colors cursor-pointer">
+<div class="flex items-center gap-3 overflow-hidden">
+<span class="material-symbols-outlined text-outline">description</span>
+<span class="text-body-md text-on-surface-variant truncate">HR_Handbook.docx</span>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold">Processing</span>
+</div>
+<div class="group flex items-center justify-between p-2 rounded-xl hover:bg-surface-container transition-colors cursor-pointer">
+<div class="flex items-center gap-3 overflow-hidden">
+<span class="material-symbols-outlined text-outline">description</span>
+<span class="text-body-md text-on-surface-variant truncate">Legal_Terms_v2.pdf</span>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold">Indexed</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Nav Navigation -->
+<div class="flex-grow flex flex-col space-y-1">
+<p class="px-2 pb-2 text-[11px] font-bold text-outline uppercase tracking-widest">Workspace</p>
+<div class="bg-secondary-container dark:bg-on-secondary-fixed-variant text-on-secondary-container dark:text-on-secondary-fixed rounded-xl flex items-center gap-3 p-3 cursor-default">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-label-md text-label-md">Analytic</span>
+</div>
+<a class="text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container-low transition-colors flex items-center gap-3 p-3 rounded-xl group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors">folder_shared</span>
+<span class="font-label-md text-label-md">Collections</span>
+</a>
+<a class="text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container-low transition-colors flex items-center gap-3 p-3 rounded-xl group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors">history</span>
+<span class="font-label-md text-label-md">History</span>
+</a>
+</div>
+<!-- Footer Links -->
+<div class="border-t border-outline-variant pt-4 flex flex-col space-y-1">
+<a class="text-secondary text-label-md font-label-md flex items-center gap-3 p-2 hover:bg-surface-container-low rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">help</span>
+                Help
+            </a>
+<a class="text-secondary text-label-md font-label-md flex items-center gap-3 p-2 hover:bg-surface-container-low rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">contact_support</span>
+                Support
+            </a>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="lg:ml-[280px] pt-16 h-screen flex flex-col">
+<!-- Chat Header -->
+<div class="h-14 border-b border-outline-variant bg-white flex items-center justify-between px-8 shrink-0">
+<div class="flex items-center gap-3">
+<div class="flex -space-x-2">
+<div class="h-6 w-6 rounded-full border-2 border-white bg-indigo-100 flex items-center justify-center">
+<span class="material-symbols-outlined text-[14px] text-primary">description</span>
+</div>
+<div class="h-6 w-6 rounded-full border-2 border-white bg-amber-100 flex items-center justify-center">
+<span class="material-symbols-outlined text-[14px] text-tertiary">folder</span>
+</div>
+</div>
+<h1 class="text-body-lg font-bold text-on-surface">Chatting across all documents</h1>
+</div>
+<div class="flex items-center gap-4">
+<button class="flex items-center gap-1.5 text-secondary text-label-md font-medium hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px]">share</span>
+                    Export
+                </button>
+<div class="h-4 w-[1px] bg-outline-variant"></div>
+<button class="flex items-center gap-1.5 text-secondary text-label-md font-medium hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px]">clear_all</span>
+                    Clear Chat
+                </button>
+</div>
+</div>
+<!-- Chat Area -->
+<div class="flex-grow overflow-y-auto chat-container bg-surface-container-lowest p-8">
+<div class="max-w-4xl mx-auto space-y-10 pb-20">
+<!-- Date Separator -->
+<div class="flex items-center gap-4">
+<div class="h-[1px] flex-grow bg-outline-variant"></div>
+<span class="text-[11px] font-bold text-outline uppercase tracking-widest">Today, October 24</span>
+<div class="h-[1px] flex-grow bg-outline-variant"></div>
+</div>
+<!-- User Message -->
+<div class="flex justify-end items-start gap-4">
+<div class="max-w-[80%] bg-zinc-100 p-4 rounded-2xl rounded-tr-none border border-outline-variant/30">
+<p class="text-body-md text-on-surface">What are the Q4 revenue targets for the APAC region according to the financial summary?</p>
+</div>
+<div class="h-8 w-8 rounded-full bg-secondary-fixed flex items-center justify-center shrink-0">
+<span class="text-[12px] font-bold text-on-secondary-fixed">JD</span>
+</div>
+</div>
+<!-- AI Message -->
+<div class="flex justify-start items-start gap-4">
+<div class="h-8 w-8 rounded-full bg-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-white text-[18px]" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+</div>
+<div class="max-w-[85%] space-y-4">
+<div class="bg-white p-6 rounded-2xl rounded-tl-none border border-outline-variant shadow-sm prose prose-zinc max-w-none">
+<p class="text-body-lg text-on-surface leading-relaxed">
+                                Based on the <strong>Q4_Financials.pdf</strong> document, the revenue targets for the APAC region are structured as follows:
+                            </p>
+<ul class="list-disc pl-5 mt-3 space-y-2 text-body-md text-on-surface-variant">
+<li class=""><strong>Primary Target:</strong> $14.2M in recurring software subscriptions.</li>
+<li class=""><strong>Growth Objective:</strong> 18% YoY increase compared to Q4 of the previous fiscal year.</li>
+<li class=""><strong>High-Priority Market:</strong> Southeast Asia (specifically Singapore and Vietnam) is expected to contribute 40% of the total regional target.</li>
+</ul>
+<p class="mt-4 text-body-md text-on-surface-variant italic">
+                                Note: These figures are contingent on the finalization of the Enterprise Licensing Agreement with regional partners.
+                            </p>
+</div>
+<!-- Citations Footer -->
+<div class="flex flex-wrap gap-2 items-center">
+<span class="text-label-md text-outline font-bold uppercase tracking-tighter mr-2">Sources:</span>
+<div class="flex items-center gap-1.5 px-3 py-1 bg-surface-container border border-outline-variant rounded-full cursor-pointer hover:bg-primary-fixed transition-colors">
+<span class="material-symbols-outlined text-[14px] text-primary">description</span>
+<span class="font-code text-code text-primary">Q4_Financials.pdf</span>
+<span class="text-code text-outline ml-1">p. 12</span>
+</div>
+<div class="flex items-center gap-1.5 px-3 py-1 bg-surface-container border border-outline-variant rounded-full cursor-pointer hover:bg-primary-fixed transition-colors">
+<span class="material-symbols-outlined text-[14px] text-primary">description</span>
+<span class="font-code text-code text-primary">Regional_Strategy_2024.docx</span>
+<span class="text-code text-outline ml-1">p. 4</span>
+</div>
+</div>
+<!-- Action Bar -->
+<div class="flex items-center gap-4 px-2">
+<button class="p-1.5 text-outline hover:text-primary hover:bg-surface-container rounded-md transition-all">
+<span class="material-symbols-outlined text-[20px]">content_copy</span>
+</button>
+<button class="p-1.5 text-outline hover:text-emerald-600 hover:bg-surface-container rounded-md transition-all">
+<span class="material-symbols-outlined text-[20px]">thumb_up</span>
+</button>
+<button class="p-1.5 text-outline hover:text-error hover:bg-surface-container rounded-md transition-all">
+<span class="material-symbols-outlined text-[20px]">thumb_down</span>
+</button>
+<button class="p-1.5 text-outline hover:text-primary hover:bg-surface-container rounded-md transition-all">
+<span class="material-symbols-outlined text-[20px]">refresh</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Input Panel -->
+<div class="border-t border-outline-variant bg-white p-6 shrink-0 shadow-[0_-4px_24px_-12px_rgba(0,0,0,0.1)]">
+<div class="max-w-4xl mx-auto">
+<div class="relative group">
+<div class="absolute inset-0 bg-primary/5 rounded-2xl -m-0.5 opacity-0 group-focus-within:opacity-100 transition-opacity pointer-events-none"></div>
+<div class="relative bg-white border border-outline-variant rounded-2xl p-3 focus-within:border-primary transition-all ring-primary/20 focus-within:ring-4">
+<textarea class="w-full resize-none border-none focus:ring-0 text-body-lg text-on-surface placeholder:text-outline/60" placeholder="Ask a question about your documents..." rows="2"></textarea>
+<div class="flex items-center justify-between mt-2 pt-2 border-t border-outline-variant/30">
+<div class="flex items-center gap-2">
+<button class="p-2 text-outline hover:bg-surface-container rounded-lg transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined">attach_file</span>
+<span class="text-label-md">Attach</span>
+</button>
+<button class="p-2 text-outline hover:bg-surface-container rounded-lg transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined">language</span>
+<span class="text-label-md">Web Search</span>
+</button>
+</div>
+<div class="flex items-center gap-4">
+<span class="text-[11px] text-outline font-medium">0 / 2000</span>
+<button class="bg-primary text-white p-2.5 rounded-xl flex items-center justify-center hover:shadow-lg active:scale-95 transition-all">
+<span class="material-symbols-outlined">send</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<p class="mt-3 text-center text-label-md text-outline">
+                    AI can make mistakes. Verify citations. Powered by <span class="font-bold text-primary">DocuSense Enterprise AI</span>.
+                </p>
+</div>
+</div>
+</main>
+<!-- Micro-interaction Script -->
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const textarea = document.querySelector('textarea');
+            textarea.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+            });
+
+            // Smooth scroll to bottom on load
+            const container = document.querySelector('.chat-container');
+            container.scrollTop = container.scrollHeight;
+        });
+    </script>
+
+
+</body></html>
