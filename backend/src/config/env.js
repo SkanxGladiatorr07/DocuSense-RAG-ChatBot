@@ -41,6 +41,9 @@ const env = {
   // Gemini
   geminiApiKey: process.env.GEMINI_API_KEY,
 
+  // Groq
+  groqApiKey: process.env.GROQ_API_KEY,
+
   // Rate Limiting Config
   rateLimitAuthWindowMs  : parseInt(process.env.RATE_LIMIT_AUTH_WINDOW_MS, 10)   || 15 * 60 * 1000,
   rateLimitAuthMax        : parseInt(process.env.RATE_LIMIT_AUTH_MAX, 10)         || 20,

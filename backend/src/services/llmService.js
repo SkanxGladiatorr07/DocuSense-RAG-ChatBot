@@ -194,14 +194,113 @@ const geminiProvider = {
   },
 };
 
-// ── Active Provider ───────────────────────────────────────────────────────────
-//
-//   To swap providers (e.g. to OpenAI):
-//     1. Implement an `openaiProvider` object with the same `generate()` sig.
-//     2. Change `activeProvider = openaiProvider;`
-//     3. No other file needs to change.
+const groqProvider = {
+  name: 'groq',
 
+  async generate(prompt, options = {}) {
+    const model          = options.model          || 'llama-3.3-70b-versatile';
+    const maxOutputTokens = options.maxOutputTokens || DEFAULT_MAX_OUTPUT_TOKENS;
+    const temperature    = options.temperature    ?? DEFAULT_TEMPERATURE;
+
+    const apiKey = env.groqApiKey;
+    if (!apiKey || apiKey === 'your_groq_api_key_here') {
+      logger.warn('[llmService] GROQ_API_KEY is missing or set to placeholder. Running in MOCK mode.');
+      
+      let responseText = "This is a mock response from DocuSense RAG Assistant.\n\nTo see real, grounded answers, please set a valid GROQ_API_KEY in your backend .env file.";
+      if (prompt.includes('CONTEXT') || prompt.includes('document')) {
+        responseText = `[Offline Mock Mode] I've analyzed your document corpus. Here is a simulated response based on your question. To get actual grounded AI answers, please configure a valid GROQ_API_KEY in your backend .env file.`;
+      }
+      
+      return {
+        text: responseText,
+        model: `mock-${model}`,
+        promptTokens: 12,
+        outputTokens: 42,
+        finishReason: 'STOP',
+      };
+    }
+
+    logger.info(`[llmService] Generating response via Groq model: ${model}`);
+
+    // ── HTTP request ──────────────────────────────────────────────────────────
+    let response;
+    try {
+      response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body   : JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: prompt }],
+          temperature,
+          max_tokens: maxOutputTokens
+        }),
+      });
+    } catch (networkErr) {
+      logger.error(`[llmService] Groq API network failure: ${networkErr.message}`);
+      throw new AppError(
+        502,
+        `Failed to reach Groq API: ${networkErr.message}`
+      );
+    }
+
+    // ── HTTP error handling ───────────────────────────────────────────────────
+    if (!response.ok) {
+      let errorBody = '';
+      try   { errorBody = await response.text(); }
+      catch { errorBody = 'Unable to read response body.'; }
+
+      logger.error(
+        `[llmService] Groq API returned ${response.status}: ${errorBody}`
+      );
+
+      let parsedMsg = `Groq API returned status ${response.status}`;
+      try {
+        const parsed = JSON.parse(errorBody);
+        if (parsed.error?.message) parsedMsg = parsed.error.message;
+      } catch { /* keep default */ }
+
+      throw new AppError(502, `Groq Generation API Failure: ${parsedMsg}`);
+    }
+
+    // ── Parse response ────────────────────────────────────────────────────────
+    let data;
+    try {
+      data = await response.json();
+    } catch (parseErr) {
+      logger.error(`[llmService] Failed to parse Groq JSON response: ${parseErr.message}`);
+      throw AppError.internal('Groq API returned a non-JSON response.');
+    }
+
+    // ── Validate response shape ───────────────────────────────────────────────
+    const text = data.choices?.[0]?.message?.content ?? '';
+    const usage = data.usage || {};
+
+    logger.info(
+      `[llmService] Groq generation complete. ` +
+      `Prompt tokens: ${usage.prompt_tokens ?? 'N/A'} | ` +
+      `Output tokens: ${usage.completion_tokens ?? 'N/A'}`
+    );
+
+    return {
+      text,
+      model,
+      promptTokens : usage.prompt_tokens      ?? 0,
+      outputTokens : usage.completion_tokens   ?? 0,
+      finishReason : data.choices?.[0]?.finish_reason || 'STOP',
+    };
+  },
+};
+
+// ── Active Provider Selection ──────────────────────────────────────────────────
+// Automatically select Groq if GROQ_API_KEY is configured and is not placeholder.
+// Otherwise, fall back to Gemini.
 let activeProvider = geminiProvider;
+if (env.groqApiKey && env.groqApiKey !== 'your_groq_api_key_here' && env.groqApiKey.trim() !== '') {
+  activeProvider = groqProvider;
+}
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
@@ -256,4 +355,5 @@ module.exports = {
   getProviderName,
   // Exposed for testing and future extension:
   _geminiProvider: geminiProvider,
+  _groqProvider: groqProvider,
 };

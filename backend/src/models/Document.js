@@ -58,7 +58,7 @@ const documentSchema = new mongoose.Schema(
       type    : Number,
       required: [true, 'fileSize is required'],
       min     : [1, 'fileSize must be at least 1 byte'],
-      max     : [10 * 1024 * 1024, 'fileSize cannot exceed 10 MB (10,485,760 bytes)'],
+      max     : [50 * 1024 * 1024, 'fileSize cannot exceed 50 MB (52,428,800 bytes)'],
     },
 
     // ── Ownership ─────────────────────────────────────────────────────────────

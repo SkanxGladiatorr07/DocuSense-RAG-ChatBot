@@ -15,7 +15,7 @@ const AppError = require('../utils/AppError');
 const logger = require('../utils/logger');
 
 /** Latest standard Gemini text embedding model. */
-const DEFAULT_EMBEDDING_MODEL = 'text-embedding-004';
+const DEFAULT_EMBEDDING_MODEL = 'gemini-embedding-2';
 
 /**
  * Generate a vector embedding for the given input text.
@@ -72,6 +72,7 @@ const generateEmbedding = async (text, options = {}) => {
             },
           ],
         },
+        outputDimensionality: 768
       }),
     });
 

@@ -78,11 +78,22 @@ const RULES = [
   },
   {
     name: 'GEMINI_API_KEY',
-    required: true,
+    required: false,
     hint: 'Google Gemini API key (e.g. GEMINI_API_KEY=AIzaSy...)',
     validate: (v) => {
       if (v.length < 10) {
         return `GEMINI_API_KEY is too short (${v.length} chars)`;
+      }
+      return null;
+    },
+  },
+  {
+    name: 'GROQ_API_KEY',
+    required: false,
+    hint: 'Groq Cloud API key (e.g. GROQ_API_KEY=gsk_...)',
+    validate: (v) => {
+      if (v.length < 10) {
+        return `GROQ_API_KEY is too short (${v.length} chars)`;
       }
       return null;
     },

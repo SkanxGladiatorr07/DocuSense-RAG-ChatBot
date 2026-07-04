@@ -26,8 +26,8 @@ const AppError = require('../utils/AppError');
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-/** Maximum accepted file size in bytes (10 MB). */
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+/** Maximum accepted file size in bytes (50 MB). */
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
 
 /**
  * Accepted MIME types mapped to their canonical extension label.

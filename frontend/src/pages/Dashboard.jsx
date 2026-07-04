@@ -13,14 +13,15 @@ const Dashboard = () => {
   const [messages, setMessages] = useState([])
   const [documents, setDocuments] = useState([])
   const [analytics, setAnalytics] = useState(null)
-  const [viewMode, setViewMode] = useState('chat') // 'chat' or 'analytics'
-
-  // Loading & Error States
+  const [deletingDocId, setDeletingDocId] = useState(null)
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [loadingChat, setLoadingChat] = useState(false)
   const [loadingDocs, setLoadingDocs] = useState(false)
   const [loadingAnalytics, setLoadingAnalytics] = useState(false)
   const [uploadState, setUploadState] = useState({ loading: false, progress: '' })
+  const [viewMode, setViewMode] = useState('chat') // 'chat' or 'analytics'
+
+  // Loading & Error States
   
   // Drag & Drop State
   const [isDragging, setIsDragging] = useState(false)
@@ -157,15 +158,16 @@ const Dashboard = () => {
     }
   }
 
-  const handleDeleteDocument = async (docId, docName) => {
+  const handleDeleteDocument = async (docId) => {
     if (uploadState.loading) return
-    if (!window.confirm(`Delete "${docName}"? This will remove the file and all its indexed data permanently.`)) return
     try {
       await api.delete(`/documents/${docId}`)
       setDocuments(prev => prev.filter(d => d._id !== docId))
       showToast('Document deleted successfully.')
     } catch (err) {
       showToast(err.message || 'Failed to delete document', 'error')
+    } finally {
+      setDeletingDocId(null)
     }
   }
 
@@ -281,7 +283,7 @@ const Dashboard = () => {
       try {
         const title = `Chat — ${new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}`
         const res = await api.post('/conversations', { title })
-        const newConv = res.data.conversation
+        const newConv = res.data.data.conversation
         setConversations(prev => [newConv, ...prev])
         currentConversationId = newConv._id
         setActiveConversationId(newConv._id)
@@ -450,15 +452,32 @@ const Dashboard = () => {
                       }`}>
                         {doc.status}
                       </span>
-                      {doc.status === 'failed' && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleDeleteDocument(doc._id, doc.originalName) }}
-                          className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-red-400 hover:bg-red-100 hover:text-red-600 transition-all"
-                          title="Delete failed document"
-                        >
-                          <span className="material-symbols-outlined text-[16px]">delete</span>
-                        </button>
-                      )}
+                      {deletingDocId === doc._id ? (
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleDeleteDocument(doc._id) }}
+                              className="p-0.5 text-red-600 hover:bg-red-50 rounded-md transition-colors flex flex-row items-center justify-center"
+                              title="Confirm delete"
+                            >
+                              <span className="material-symbols-outlined text-[15px]">check</span>
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setDeletingDocId(null) }}
+                              className="p-0.5 text-secondary hover:bg-zinc-200 rounded-md transition-colors flex flex-row items-center justify-center"
+                              title="Cancel"
+                            >
+                              <span className="material-symbols-outlined text-[15px]">close</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setDeletingDocId(doc._id) }}
+                            className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-red-400 hover:bg-red-100 hover:text-red-600 transition-all flex flex-row items-center justify-center"
+                            title="Delete document"
+                          >
+                            <span className="material-symbols-outlined text-[16px]">delete</span>
+                          </button>
+                        )}
                     </div>
                   </div>
                 ))
