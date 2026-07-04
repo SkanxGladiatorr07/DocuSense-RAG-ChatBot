@@ -19,7 +19,7 @@ const AppError             = require('../utils/AppError');
 const mongoose             = require('mongoose');
 const env                  = require('../config/env');
 const logger               = require('../utils/logger');
-const { ragService, promptBuilderService, cacheService } = require('../services');
+const { ragService, promptBuilderService, cacheService, conversationService } = require('../services');
 
 // ── POST /api/v1/chat/ask ─────────────────────────────────────────────────────
 
@@ -88,6 +88,7 @@ const askQuestion = asyncHandler(async (req, res) => {
     template,
     maxOutputTokens,
     temperature,
+    conversationId,
   } = req.body;
 
   // ── Validate required field ────────────────────────────────────────────────
@@ -117,6 +118,11 @@ const askQuestion = asyncHandler(async (req, res) => {
   // ── Optional documentId guard ──────────────────────────────────────────────
   if (documentId !== undefined && !mongoose.Types.ObjectId.isValid(documentId)) {
     throw AppError.badRequest('"documentId" must be a valid MongoDB ObjectId.');
+  }
+
+  // ── Optional conversationId guard ──────────────────────────────────────────
+  if (conversationId !== undefined && !mongoose.Types.ObjectId.isValid(conversationId)) {
+    throw AppError.badRequest('"conversationId" must be a valid MongoDB ObjectId.');
   }
 
   // ── Optional template guard ────────────────────────────────────────────────
@@ -182,6 +188,28 @@ const askQuestion = asyncHandler(async (req, res) => {
     }
   }
 
+  // ── Save to Conversation History (if conversationId provided) ─────────────
+  if (conversationId) {
+    try {
+      await conversationService.addMessage(conversationId, req.user._id, {
+        question: question.trim(),
+        answer: result.answer,
+        sources: result.sources || [],
+        retrievalMetadata: {
+          chunksRetrieved: result.confidence?.retrievedChunks || 0,
+          topScore: result.confidence?.topScore || 0,
+        },
+        llmMetadata: {
+          model: result.model,
+          promptTokens: result.promptTokens || 0,
+          outputTokens: result.outputTokens || 0,
+        }
+      });
+    } catch (msgErr) {
+      logger.error(`[chatController] Failed to save message to history: ${msgErr.message}`);
+    }
+  }
+
   // ── Shape response ─────────────────────────────────────────────────────────
   return successResponse(res, 200, 'Answer generated successfully.', {
     answer      : result.answer,
@@ -197,6 +225,7 @@ const askQuestion = asyncHandler(async (req, res) => {
     citations  : result.citations,
     references : result.references,
     chunks     : result.chunks,
+    conversationId,
   });
 });
 
