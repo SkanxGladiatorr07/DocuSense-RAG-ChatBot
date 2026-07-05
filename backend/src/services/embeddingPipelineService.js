@@ -4,7 +4,7 @@
  */
 
 const { Chunk, Document } = require('../models');
-const { generateEmbedding } = require('./embeddingService');
+const { generateEmbedding, generateEmbeddingsBatch } = require('./embeddingService');
 const AppError = require('../utils/AppError');
 const logger = require('../utils/logger');
 const { STATUSES } = require('./processingService');
@@ -67,24 +67,27 @@ const runEmbeddingPipeline = async (documentId, userId = null) => {
     let skippedCount = 0;
 
     // ── 4. Generate & save embeddings ────────────────────────────────────────
-    for (const chunk of chunks) {
+    // ── 4. Generate & save embeddings in batches of 100 ──────────────────────
+    const BATCH_SIZE = 100;
+    const chunksToEmbed = chunks.filter(c => !(Array.isArray(c.embedding) && c.embedding.length > 0));
+    skippedCount = chunks.length - chunksToEmbed.length;
+
+    for (let i = 0; i < chunksToEmbed.length; i += BATCH_SIZE) {
+      const batch = chunksToEmbed.slice(i, i + BATCH_SIZE);
+      const texts = batch.map(c => c.content);
+
       try {
-        // Skip chunks that already contain embeddings
-        if (Array.isArray(chunk.embedding) && chunk.embedding.length > 0) {
-          skippedCount++;
-          continue;
+        const vectors = await generateEmbeddingsBatch(texts);
+        
+        // Save the generated vectors back to the database
+        for (let j = 0; j < batch.length; j++) {
+          batch[j].embedding = vectors[j];
+          await batch[j].save();
+          successfulEmbeddings++;
         }
-
-        // Generate embedding using the text content
-        const vector = await generateEmbedding(chunk.content);
-
-        // Save vector embedding back to the database for this specific chunk
-        chunk.embedding = vector;
-        await chunk.save();
-        successfulEmbeddings++;
-      } catch (chunkErr) {
-        logger.error(`[embeddingPipeline] Failed to embed chunk ${chunk._id} (index: ${chunk.chunkIndex}): ${chunkErr.message}`);
-        failedEmbeddings++;
+      } catch (batchErr) {
+        logger.error(`[embeddingPipeline] Failed to embed batch starting at index ${i}: ${batchErr.message}`);
+        failedEmbeddings += batch.length;
       }
     }
 

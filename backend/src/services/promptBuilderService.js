@@ -54,8 +54,8 @@ const formatChunkBlock = (chunk, index) => {
   const typeTag  = fileType ? ` (${fileType.split('/').pop().toUpperCase()})` : '';
 
   return [
-    `[Source ${index}] ${docName}${typeTag}`,
-    `${chunk.content.trim()}`,
+    `Document: ${docName}${typeTag}`,
+    `Content: ${chunk.content.trim()}`,
   ].join('\n');
 };
 
@@ -101,8 +101,7 @@ knowledge or assumptions.
 2. If the context does not contain enough information to answer the question, \
 respond with exactly: "The information requested is not available in the \
 provided documents."
-3. When referencing information, mention the source (e.g. "According to \
-[Source 1]...") to help the user locate the original content.
+3. When referencing information, cite the source by using the specific document name (e.g. "According to TSLA-Q4-2023-Update.pdf..." or "[TSLA-Q4-2023-Update.pdf]"). Do NOT use generic placeholders like "Source 1" or "Source 2"; refer to the document directly by its filename.
 4. Be clear, concise, and factual. Do not fabricate details.
 5. If the question is ambiguous, answer for the most likely interpretation \
 based on the context.
@@ -143,7 +142,7 @@ context provided. Use bullet points or numbered lists where appropriate.
 
 Rules:
 - Only use information from the CONTEXT section.
-- Cite sources inline (e.g. "[Source 2]").
+- Cite sources using their specific document name (e.g. "[TSLA-Q4-2023-Update.pdf]"). Do NOT use generic placeholders like "[Source 1]".
 - If the context is insufficient, state clearly: "The provided documents do \
 not contain enough information to answer this question fully."
 - Do not speculate or add information from outside the context.

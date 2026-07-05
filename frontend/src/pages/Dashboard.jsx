@@ -456,14 +456,14 @@ const Dashboard = () => {
                           <div className="flex items-center gap-1">
                             <button
                               onClick={(e) => { e.stopPropagation(); handleDeleteDocument(doc._id) }}
-                              className="p-0.5 text-red-600 hover:bg-red-50 rounded-md transition-colors flex flex-row items-center justify-center"
+                              className="p-0.5 text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors flex flex-row items-center justify-center"
                               title="Confirm delete"
                             >
                               <span className="material-symbols-outlined text-[15px]">check</span>
                             </button>
                             <button
                               onClick={(e) => { e.stopPropagation(); setDeletingDocId(null) }}
-                              className="p-0.5 text-secondary hover:bg-zinc-200 rounded-md transition-colors flex flex-row items-center justify-center"
+                              className="p-0.5 text-red-600 hover:bg-red-50 rounded-md transition-colors flex flex-row items-center justify-center"
                               title="Cancel"
                             >
                               <span className="material-symbols-outlined text-[15px]">close</span>

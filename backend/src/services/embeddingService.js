@@ -135,6 +135,75 @@ const generateEmbedding = async (text, options = {}) => {
   }
 };
 
+/**
+ * Generate vector embeddings for an array of input texts in a single batch request.
+ *
+ * @param {string[]} texts - Array of input strings to embed.
+ * @param {object} [options={}]
+ * @param {string} [options.model='gemini-embedding-2'] - The Gemini model to target.
+ * @returns {Promise<number[][]>} Array of float vectors.
+ */
+const generateEmbeddingsBatch = async (texts, options = {}) => {
+  if (!Array.isArray(texts) || texts.length === 0) {
+    throw AppError.badRequest('embeddingService.generateEmbeddingsBatch: texts must be a non-empty array.');
+  }
+
+  const model = options.model || DEFAULT_EMBEDDING_MODEL;
+  const apiKey = env.geminiApiKey;
+
+  if (!apiKey || apiKey === 'your_gemini_api_key_here') {
+    logger.warn('[embeddingService] GEMINI_API_KEY is missing or set to placeholder. Running in MOCK mode.');
+    // Return mock vectors of 768 dimensions for each text
+    return texts.map(() => Array.from({ length: 768 }, (_, i) => Math.sin(i) * 0.1));
+  }
+
+  logger.info(`[embeddingService] Generating batch embeddings using model: ${model} for ${texts.length} items`);
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:batchEmbedContents?key=${apiKey}`;
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        requests: texts.map((t) => ({
+          model: `models/${model}`,
+          content: {
+            parts: [{ text: t.trim() || ' ' }],
+          },
+          outputDimensionality: 768
+        })),
+      }),
+    });
+
+    if (!response.ok) {
+      let errorBody = '';
+      try { errorBody = await response.text(); } catch { errorBody = 'Unable to read response body.'; }
+      logger.error(`[embeddingService] Gemini API returned error status: ${response.status} | Body: ${errorBody}`);
+      let parsedMsg = `Gemini API returned status ${response.status}`;
+      try {
+        const parsed = JSON.parse(errorBody);
+        if (parsed.error && parsed.error.message) parsedMsg = parsed.error.message;
+      } catch {}
+      throw new AppError(502, `Gemini Embedding API Failure: ${parsedMsg}`);
+    }
+
+    const data = await response.json();
+    if (!Array.isArray(data.embeddings)) {
+      throw AppError.internal('Gemini API returned an invalid response shape for batch embeddings.');
+    }
+
+    return data.embeddings.map((emb) => emb.values);
+  } catch (err) {
+    if (err instanceof AppError) throw err;
+    logger.error(`[embeddingService] Network failure during batch embedding: ${err.message}`);
+    throw new AppError(502, `Gemini Embedding API network failure: ${err.message}`);
+  }
+};
+
 module.exports = {
   generateEmbedding,
+  generateEmbeddingsBatch,
 };
