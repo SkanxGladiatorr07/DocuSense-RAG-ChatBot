@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 
 const Dashboard = () => {
   const { user, token } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
 
   // State Management
   const [conversations, setConversations] = useState([])
@@ -28,6 +29,15 @@ const Dashboard = () => {
     // Example: { id: 1, type: 'info', message: 'Your document was indexed.', time: '2m ago' }
   ])
   const [showNotifPanel, setShowNotifPanel] = useState(false)
+
+  // Sync viewMode with query params (?view=help / ?view=support)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const view = params.get('view')
+    if (view && ['chat', 'analytics', 'help', 'support'].includes(view)) {
+      setViewMode(view)
+    }
+  }, [location.search])
 
   // Loading & Error States
   
@@ -992,6 +1002,7 @@ const Dashboard = () => {
             <div className="bg-white border border-outline-variant rounded-2xl shadow-sm p-6 space-y-4">
               <h3 className="font-bold text-title-md text-on-surface">Frequently Asked Questions</h3>
               {[
+                { q: 'Is it free?', a: 'Yes! Currently, DocuSense is completely free to use during our public preview.' },
                 { q: 'Why does my document show "failed" status?', a: 'This usually means the embedding step hit API rate limits. Delete the document, wait 60 seconds, and re-upload. With batch embedding (100 chunks per request), most documents index in under 5 seconds.' },
                 { q: 'Which file formats are supported?', a: 'DocuSense supports PDF, DOCX, and TXT files up to 50 MB each. Scanned PDFs without an OCR text layer may not extract text correctly.' },
                 { q: 'Can I search across multiple documents?', a: 'Yes. Leave the document filter empty in the chat to search your entire indexed corpus. You can also restrict search to a specific document.' },

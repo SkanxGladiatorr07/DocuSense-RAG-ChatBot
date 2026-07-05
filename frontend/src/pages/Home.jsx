@@ -110,7 +110,7 @@ const Home = () => {
         </section>
 
         {/* Feature Section */}
-        <section className="py-32 px-6 bg-surface-container-low/30">
+        <section id="features" className="py-32 px-6 bg-surface-container-low/30">
           <div className="max-w-container-max mx-auto">
             <div className="text-center mb-20 space-y-4">
               <h2 className="font-headline-lg text-headline-lg text-on-surface">Precision-Engineered Intelligence</h2>
@@ -258,9 +258,9 @@ const Home = () => {
           <div>
             <h5 className="font-title-md text-title-md text-on-surface mb-6">Product</h5>
             <ul className="space-y-4 font-body-md text-body-md text-secondary">
-              <li><a className="hover:text-primary transition-colors" href="#">Features</a></li>
+              <li><a className="hover:text-primary transition-colors cursor-pointer" href="#features" onClick={(e) => { e.preventDefault(); document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' }); }}>Features</a></li>
               <li><a className="hover:text-primary transition-colors" href="#">Security</a></li>
-              <li><a className="hover:text-primary transition-colors" href="#">Pricing</a></li>
+              <li><Link className="hover:text-primary transition-colors" to="/dashboard?view=support">Pricing</Link></li>
             </ul>
           </div>
           <div>
@@ -276,7 +276,7 @@ const Home = () => {
             <ul className="space-y-4 font-body-md text-body-md text-secondary">
               <li><a className="hover:text-primary transition-colors" href="#">About Us</a></li>
               <li><a className="hover:text-primary transition-colors" href="#">Careers</a></li>
-              <li><a className="hover:text-primary transition-colors" href="#">Privacy</a></li>
+              <li><Link className="hover:text-primary transition-colors" to="/dashboard?view=help">Privacy</Link></li>
             </ul>
           </div>
         </div>
