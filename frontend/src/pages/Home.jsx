@@ -251,31 +251,31 @@ const Home = () => {
             <span className="text-title-md font-title-md font-bold text-primary">DocuSense</span>
             <p className="font-body-md text-body-md text-secondary">Advanced retrieval systems for the modern enterprise.</p>
             <div className="flex gap-4">
-              <a className="text-secondary hover:text-primary transition-colors" href="#"><span className="material-symbols-outlined">public</span></a>
-              <a className="text-secondary hover:text-primary transition-colors" href="#"><span className="material-symbols-outlined">terminal</span></a>
+              <a className="text-secondary hover:text-primary transition-colors" href="#" onClick={(e) => e.preventDefault()}><span className="material-symbols-outlined">public</span></a>
+              <a className="text-secondary hover:text-primary transition-colors" href="#" onClick={(e) => e.preventDefault()}><span className="material-symbols-outlined">terminal</span></a>
             </div>
           </div>
           <div>
             <h5 className="font-title-md text-title-md text-on-surface mb-6">Product</h5>
             <ul className="space-y-4 font-body-md text-body-md text-secondary">
               <li><a className="hover:text-primary transition-colors cursor-pointer" href="#features" onClick={(e) => { e.preventDefault(); document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' }); }}>Features</a></li>
-              <li><a className="hover:text-primary transition-colors" href="#">Security</a></li>
+              <li><Link className="hover:text-primary transition-colors" to="/dashboard?view=help">Security</Link></li>
               <li><Link className="hover:text-primary transition-colors" to="/dashboard?view=support">Pricing</Link></li>
             </ul>
           </div>
           <div>
             <h5 className="font-title-md text-title-md text-on-surface mb-6">Resources</h5>
             <ul className="space-y-4 font-body-md text-body-md text-secondary">
-              <li><a className="hover:text-primary transition-colors" href="#">Documentation</a></li>
-              <li><a className="hover:text-primary transition-colors" href="#">API Reference</a></li>
-              <li><a className="hover:text-primary transition-colors" href="#">Blog</a></li>
+              <li><a className="hover:text-primary transition-colors" href="#" onClick={(e) => e.preventDefault()}>Documentation</a></li>
+              <li><a className="hover:text-primary transition-colors" href="#" onClick={(e) => e.preventDefault()}>API Reference</a></li>
+              <li><a className="hover:text-primary transition-colors" href="#" onClick={(e) => e.preventDefault()}>Blog</a></li>
             </ul>
           </div>
           <div>
             <h5 className="font-title-md text-title-md text-on-surface mb-6">Company</h5>
             <ul className="space-y-4 font-body-md text-body-md text-secondary">
-              <li><a className="hover:text-primary transition-colors" href="#">About Us</a></li>
-              <li><a className="hover:text-primary transition-colors" href="#">Careers</a></li>
+              <li><a className="hover:text-primary transition-colors" href="#" onClick={(e) => e.preventDefault()}>About Us</a></li>
+              <li><a className="hover:text-primary transition-colors" href="#" onClick={(e) => e.preventDefault()}>Careers</a></li>
               <li><Link className="hover:text-primary transition-colors" to="/dashboard?view=help">Privacy</Link></li>
             </ul>
           </div>

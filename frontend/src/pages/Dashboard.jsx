@@ -157,7 +157,8 @@ const Dashboard = () => {
   const handleNewConversation = async () => {
     if (loadingHistory || loadingChat || uploadState.loading) return
     try {
-      const title = `Chat — ${new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}`
+      const timeStr = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+      const title = `Chat — ${new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short' })} (${timeStr})`
       const res = await api.post('/conversations', { title })
       const newConv = res.data.data.conversation
       setConversations(prev => [newConv, ...prev])
@@ -185,6 +186,20 @@ const Dashboard = () => {
       showToast('Conversation archived successfully.')
     } catch (err) {
       showToast(err.message || 'Failed to archive conversation', 'error')
+    }
+  }
+
+  const handleDeleteConversation = async (convId) => {
+    try {
+      await api.delete(`/conversations/${convId}`)
+      setConversations(prev => prev.filter(c => c._id !== convId))
+      if (activeConversationId === convId) {
+        setActiveConversationId(null)
+        setMessages([])
+      }
+      showToast('Conversation archived successfully.')
+    } catch (err) {
+      showToast(err.message || 'Failed to delete conversation', 'error')
     }
   }
 
@@ -531,21 +546,33 @@ const Dashboard = () => {
           </div>
           <div className="flex flex-col space-y-1 max-h-[150px] overflow-y-auto custom-scrollbar">
             {conversations.map(conv => (
-              <button 
-                key={conv._id} 
-                onClick={() => selectConversation(conv._id)}
-                disabled={isActionPending}
-                className={`group flex w-full items-center justify-between p-2 rounded-xl transition-colors text-left disabled:opacity-80 disabled:cursor-not-allowed ${
-                  activeConversationId === conv._id 
-                    ? 'bg-primary-fixed text-on-primary-fixed border border-primary/10' 
-                    : 'hover:bg-surface-container text-on-surface-variant'
-                }`}
-              >
-                <div className="flex items-center gap-3 overflow-hidden">
-                  <span className="material-symbols-outlined text-[18px] text-outline">chat_bubble</span>
-                  <span className="text-body-md truncate">{conv.title}</span>
-                </div>
-              </button>
+              <div key={conv._id} className="group relative flex items-center w-full">
+                <button 
+                  onClick={() => selectConversation(conv._id)}
+                  disabled={isActionPending}
+                  className={`flex-grow flex items-center justify-between p-2 rounded-xl transition-all text-left disabled:opacity-80 disabled:cursor-not-allowed pr-8 ${
+                    activeConversationId === conv._id 
+                      ? 'bg-primary-fixed text-on-primary-fixed border border-primary/10 font-medium' 
+                      : 'hover:bg-surface-container text-on-surface-variant'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <span className="material-symbols-outlined text-[18px] text-outline">chat_bubble</span>
+                    <span className="text-body-md truncate">{conv.title}</span>
+                  </div>
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteConversation(conv._id);
+                  }}
+                  disabled={isActionPending}
+                  className="absolute right-2 opacity-0 group-hover:opacity-100 p-1 rounded-md text-outline hover:bg-red-50 hover:text-red-600 transition-all flex items-center justify-center disabled:opacity-0"
+                  title="Archive Chat"
+                >
+                  <span className="material-symbols-outlined text-[16px]">close</span>
+                </button>
+              </div>
             ))}
             {conversations.length === 0 && (
               <p className="text-[12px] text-outline italic px-2">No recent chats.</p>
@@ -629,7 +656,7 @@ const Dashboard = () => {
       {viewMode === 'chat' ? (
         <main 
           onDragEnter={handleDragEnter}
-          className="lg:ml-[280px] pt-16 h-screen flex flex-col relative"
+          className="lg:ml-[280px] pt-16 h-screen flex flex-col relative animate-fade-in-up"
         >
           {/* Full Screen Drag & Drop Overlay */}
           {isDragging && (
@@ -888,7 +915,7 @@ const Dashboard = () => {
 
       ) : viewMode === 'help' ? (
         /* ── Help Page ── */
-        <main className="lg:ml-[280px] pt-16 h-screen flex flex-col overflow-y-auto bg-surface-container-lowest p-8">
+        <main className="lg:ml-[280px] pt-16 h-screen flex flex-col overflow-y-auto bg-surface-container-lowest p-8 animate-fade-in-up">
           <div className="max-w-4xl mx-auto w-full space-y-8 pb-12">
             <div className="flex justify-between items-center border-b border-outline-variant pb-4">
               <div>
@@ -944,7 +971,7 @@ const Dashboard = () => {
 
       ) : viewMode === 'support' ? (
         /* ── Support Page ── */
-        <main className="lg:ml-[280px] pt-16 h-screen flex flex-col overflow-y-auto bg-surface-container-lowest p-8">
+        <main className="lg:ml-[280px] pt-16 h-screen flex flex-col overflow-y-auto bg-surface-container-lowest p-8 animate-fade-in-up">
           <div className="max-w-4xl mx-auto w-full space-y-8 pb-12">
             <div className="flex justify-between items-center border-b border-outline-variant pb-4">
               <div>
@@ -1022,7 +1049,7 @@ const Dashboard = () => {
 
       ) : (
         /* ── Analytics View ── */
-        <main className="lg:ml-[280px] pt-16 h-screen flex flex-col overflow-y-auto bg-surface-container-lowest p-8">
+        <main className="lg:ml-[280px] pt-16 h-screen flex flex-col overflow-y-auto bg-surface-container-lowest p-8 animate-fade-in-up">
           <div className="max-w-6xl mx-auto w-full space-y-8 pb-12">
             <div className="flex justify-between items-center border-b border-outline-variant pb-4">
               <div>

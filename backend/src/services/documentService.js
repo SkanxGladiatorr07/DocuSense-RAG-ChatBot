@@ -54,6 +54,17 @@ const { STATUSES }      = processingService;
  */
 const createDocument = async ({ fileName, originalName, fileType, fileSize, uploadedBy }) => {
   try {
+    // Prevent duplicate documents: clean up any existing document records with the same original name for this user
+    const existingDocs = await Document.find({ originalName, uploadedBy });
+    for (const existingDoc of existingDocs) {
+      logger.info(`[documentService.createDocument] Found existing document "${originalName}" for user ${uploadedBy}. Deleting it first.`);
+      try {
+        await deleteDocument(existingDoc._id, uploadedBy);
+      } catch (err) {
+        logger.warn(`[documentService.createDocument] Failed to delete existing document ${existingDoc._id}: ${err.message}`);
+      }
+    }
+
     const doc = await Document.create({
       fileName,
       originalName,
