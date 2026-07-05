@@ -30,6 +30,10 @@ const Dashboard = () => {
   ])
   const [showNotifPanel, setShowNotifPanel] = useState(false)
 
+  // Star Rating Modal States
+  const [showRatingModal, setShowRatingModal] = useState(false)
+  const [hoverStar, setHoverStar] = useState(0)
+
   // Sync viewMode with query params (?view=help / ?view=support)
   useEffect(() => {
     const params = new URLSearchParams(location.search)
@@ -216,6 +220,21 @@ const Dashboard = () => {
     }
   }
 
+  const handleFeedback = (messageId, type) => {
+    setMessages(prev => 
+      prev.map(msg => 
+        msg._id === messageId 
+          ? { ...msg, feedback: type } 
+          : msg
+      )
+    )
+    if (type === 'up') {
+      showToast('Thank You for your response')
+    } else {
+      showToast('We are sorry for the inconvenience', 'error')
+    }
+  }
+
   // ── Ingestion Pipeline ──────────────────────────────────────────────────────
 
   const triggerIngestionPipeline = async (file) => {
@@ -373,6 +392,21 @@ const Dashboard = () => {
 
       // Refresh conversations list to update messageCount/lastMessageAt
       fetchConversations()
+
+      // Increment questions count and check for rating modal
+      const hasRatedKey = `has_rated_${user?._id || 'guest'}`
+      const hasRated = localStorage.getItem(hasRatedKey)
+      if (!hasRated) {
+        const countKey = `question_count_${user?._id || 'guest'}`
+        const newCount = (parseInt(localStorage.getItem(countKey), 10) || 0) + 1
+        localStorage.setItem(countKey, newCount)
+        if (newCount === 3) { // Trigger rating prompt after 3 questions
+          setTimeout(() => {
+            setShowRatingModal(true)
+            localStorage.setItem(hasRatedKey, 'true') // Mark as asked so it never repeats
+          }, 1200)
+        }
+      }
     } catch (err) {
       showToast(err.message || 'Chat generation failed.', 'error')
       // Mark local message as error
@@ -834,12 +868,38 @@ const Dashboard = () => {
                             >
                               <span className="material-symbols-outlined text-[20px]">content_copy</span>
                             </button>
-                            <button className="p-1.5 text-outline hover:text-emerald-600 hover:bg-surface-container rounded-md transition-all">
-                              <span className="material-symbols-outlined text-[20px]">thumb_up</span>
+                            <button 
+                              onClick={() => handleFeedback(msg._id, 'up')}
+                              className={`p-1.5 rounded-md transition-all ${
+                                msg.feedback === 'up' 
+                                  ? 'text-emerald-600 bg-emerald-50' 
+                                  : 'text-outline hover:text-emerald-600 hover:bg-surface-container'
+                              }`}
+                              title="Good response"
+                            >
+                              <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: msg.feedback === 'up' ? "'FILL' 1" : "'FILL' 0" }}>thumb_up</span>
                             </button>
-                            <button className="p-1.5 text-outline hover:text-error hover:bg-surface-container rounded-md transition-all">
-                              <span className="material-symbols-outlined text-[20px]">thumb_down</span>
+                            <button 
+                              onClick={() => handleFeedback(msg._id, 'down')}
+                              className={`p-1.5 rounded-md transition-all ${
+                                msg.feedback === 'down' 
+                                  ? 'text-red-500 bg-red-50' 
+                                  : 'text-outline hover:text-error hover:bg-surface-container'
+                              }`}
+                              title="Bad response"
+                            >
+                              <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: msg.feedback === 'down' ? "'FILL' 1" : "'FILL' 0" }}>thumb_down</span>
                             </button>
+                            {msg.feedback === 'up' && (
+                              <span className="text-emerald-600 text-body-sm font-semibold ml-2 animate-fade-in-up">
+                                Thank You for your response
+                              </span>
+                            )}
+                            {msg.feedback === 'down' && (
+                              <span className="text-red-500 text-body-sm font-semibold ml-2 animate-fade-in-up">
+                                We are sorry for the inconvenience
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>
@@ -1159,6 +1219,54 @@ const Dashboard = () => {
             )}
           </div>
         </main>
+      )}
+
+      {/* 5-Star Rating Modal */}
+      {showRatingModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white border border-outline-variant rounded-2xl p-8 max-w-sm w-[90%] shadow-2xl flex flex-col items-center text-center gap-5 animate-fade-in-up">
+            <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-500">
+              <span className="material-symbols-outlined text-[32px]" style={{ fontVariationSettings: "'FILL' 1" }}>grade</span>
+            </div>
+            <div className="space-y-2">
+              <h3 className="font-bold text-on-surface text-title-lg">Enjoying DocuSense?</h3>
+              <p className="text-body-md text-secondary leading-relaxed">Rate us on a basis of 5 stars. We value your feedback!</p>
+            </div>
+            
+            {/* Interactive Stars */}
+            <div className="flex gap-1.5 py-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  onClick={() => {
+                    showToast('Thank you for your rating!')
+                    setShowRatingModal(false)
+                  }}
+                  onMouseEnter={() => setHoverStar(star)}
+                  onMouseLeave={() => setHoverStar(0)}
+                  className="p-1 active:scale-95 transition-all focus:outline-none"
+                >
+                  <span 
+                    className="material-symbols-outlined text-[36px] transition-colors duration-150"
+                    style={{ 
+                      fontVariationSettings: (hoverStar || 0) >= star ? "'FILL' 1" : "'FILL' 0",
+                      color: (hoverStar || 0) >= star ? '#fbbf24' : '#e4e4e7'
+                    }}
+                  >
+                    star
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <button 
+              onClick={() => setShowRatingModal(false)}
+              className="text-label-md font-bold text-outline hover:text-primary transition-colors focus:outline-none mt-2"
+            >
+              Maybe Later
+            </button>
+          </div>
+        </div>
       )}
     </>
   )
