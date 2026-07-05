@@ -20,7 +20,14 @@ const Dashboard = () => {
   const [loadingDocs, setLoadingDocs] = useState(false)
   const [loadingAnalytics, setLoadingAnalytics] = useState(false)
   const [uploadState, setUploadState] = useState({ loading: false, progress: '' })
-  const [viewMode, setViewMode] = useState('chat') // 'chat' or 'analytics'
+  const [viewMode, setViewMode] = useState('chat') // 'chat' | 'analytics' | 'help' | 'support'
+
+  // Notifications
+  const [notifications] = useState([
+    // Empty array = no notifications. Populate to show them.
+    // Example: { id: 1, type: 'info', message: 'Your document was indexed.', time: '2m ago' }
+  ])
+  const [showNotifPanel, setShowNotifPanel] = useState(false)
 
   // Loading & Error States
   
@@ -567,14 +574,44 @@ const Dashboard = () => {
         
         {/* Footer Links */}
         <div className="border-t border-outline-variant pt-4 flex flex-col space-y-1">
-          <Link to="#" className="text-secondary text-label-md font-label-md flex items-center gap-3 p-2 hover:bg-surface-container-low rounded-lg transition-colors">
-            <span className="material-symbols-outlined text-[20px]">help</span>
-            Help
-          </Link>
-          <Link to="#" className="text-secondary text-label-md font-label-md flex items-center gap-3 p-2 hover:bg-surface-container-low rounded-lg transition-colors">
-            <span className="material-symbols-outlined text-[20px]">contact_support</span>
-            Support
-          </Link>
+          {/* Help Button — Coming Soon tooltip */}
+          <div className="relative group/help">
+            <button
+              onClick={() => setViewMode('help')}
+              className={`w-full text-left flex items-center gap-3 p-2 rounded-lg transition-colors font-label-md text-label-md ${
+                viewMode === 'help'
+                  ? 'bg-secondary-container text-on-secondary-container'
+                  : 'text-secondary hover:bg-surface-container-low'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[20px]">help</span>
+              Help
+            </button>
+            <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 z-50 pointer-events-none opacity-0 group-hover/help:opacity-100 transition-opacity duration-200">
+              <div className="bg-zinc-900 text-amber-400 text-[11px] font-bold px-2.5 py-1 rounded-lg whitespace-nowrap shadow-lg border border-zinc-700">
+                🚧 Coming Soon
+              </div>
+            </div>
+          </div>
+          {/* Support Button — Coming Soon tooltip */}
+          <div className="relative group/support">
+            <button
+              onClick={() => setViewMode('support')}
+              className={`w-full text-left flex items-center gap-3 p-2 rounded-lg transition-colors font-label-md text-label-md ${
+                viewMode === 'support'
+                  ? 'bg-secondary-container text-on-secondary-container'
+                  : 'text-secondary hover:bg-surface-container-low'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[20px]">contact_support</span>
+              Support
+            </button>
+            <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 z-50 pointer-events-none opacity-0 group-hover/support:opacity-100 transition-opacity duration-200">
+              <div className="bg-zinc-900 text-amber-400 text-[11px] font-bold px-2.5 py-1 rounded-lg whitespace-nowrap shadow-lg border border-zinc-700">
+                🚧 Coming Soon
+              </div>
+            </div>
+          </div>
         </div>
       </aside>
 
@@ -838,8 +875,142 @@ const Dashboard = () => {
             </div>
           </div>
         </main>
+
+      ) : viewMode === 'help' ? (
+        /* ── Help Page ── */
+        <main className="lg:ml-[280px] pt-16 h-screen flex flex-col overflow-y-auto bg-surface-container-lowest p-8">
+          <div className="max-w-4xl mx-auto w-full space-y-8 pb-12">
+            <div className="flex justify-between items-center border-b border-outline-variant pb-4">
+              <div>
+                <h1 className="text-headline-md font-bold text-on-surface">Help Center</h1>
+                <p className="text-body-md text-secondary">Guides and documentation for using DocuSense</p>
+              </div>
+              <button onClick={() => setViewMode('chat')} className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl font-label-md hover:opacity-90 transition-all shadow-sm">
+                <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+                Back
+              </button>
+            </div>
+
+            {/* Coming Soon Banner */}
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border border-indigo-100 p-10 flex flex-col items-center text-center gap-6">
+              <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-secondary/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="w-20 h-20 rounded-2xl bg-white border border-outline-variant shadow-lg flex items-center justify-center">
+                <span className="material-symbols-outlined text-primary text-[44px]" style={{ fontVariationSettings: "'FILL' 1" }}>menu_book</span>
+              </div>
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-[12px] font-bold mb-3">
+                  <span className="material-symbols-outlined text-[14px]">construction</span>
+                  Coming Soon
+                </div>
+                <h2 className="text-headline-md font-bold text-on-surface">Full Help Documentation</h2>
+                <p className="text-body-md text-secondary mt-2 max-w-lg">Our complete help center is under construction. In the meantime, here are quick guides to get you started.</p>
+              </div>
+            </div>
+
+            {/* Quick Start Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {[
+                { icon: 'upload_file', title: 'Uploading Documents', desc: 'Click "Upload Document" in the sidebar or drag-and-drop a PDF, DOCX, or TXT file directly onto the chat area. Files up to 50 MB are supported.', color: 'text-blue-600', bg: 'bg-blue-50' },
+                { icon: 'auto_awesome', title: 'Asking Questions', desc: 'Once a document is indexed (green status), type any question in the chat box. DocuSense will retrieve the most relevant passages and generate a grounded answer.', color: 'text-purple-600', bg: 'bg-purple-50' },
+                { icon: 'analytics', title: 'Understanding Analytics', desc: 'The Analytics view shows your total document count, average chunks per document, and processing status breakdown so you can monitor your corpus health.', color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                { icon: 'history', title: 'Managing Chat History', desc: 'All Q&A sessions are auto-saved to conversations. Switch between them in the sidebar. Archive a session using the "Archive Chat" button in the chat header.', color: 'text-amber-600', bg: 'bg-amber-50' },
+                { icon: 'delete', title: 'Deleting Documents', desc: 'Hover over a document in the sidebar to reveal the delete icon. Click it and confirm with the green checkmark. This removes the file and all its indexed chunks.', color: 'text-red-600', bg: 'bg-red-50' },
+                { icon: 'security', title: 'Privacy & Security', desc: 'All documents are stored locally in your deployment. Embeddings use Google Gemini API. Text generation uses Groq (LLaMA 3.3 70B). No data is shared externally.', color: 'text-indigo-600', bg: 'bg-indigo-50' },
+              ].map((item) => (
+                <div key={item.title} className="p-5 bg-white border border-outline-variant rounded-2xl shadow-sm flex gap-4 hover:shadow-md transition-shadow">
+                  <div className={`w-10 h-10 rounded-xl ${item.bg} flex items-center justify-center shrink-0`}>
+                    <span className={`material-symbols-outlined text-[22px] ${item.color}`} style={{ fontVariationSettings: "'FILL' 1" }}>{item.icon}</span>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-on-surface text-body-lg">{item.title}</h3>
+                    <p className="text-body-md text-secondary mt-1 leading-relaxed">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </main>
+
+      ) : viewMode === 'support' ? (
+        /* ── Support Page ── */
+        <main className="lg:ml-[280px] pt-16 h-screen flex flex-col overflow-y-auto bg-surface-container-lowest p-8">
+          <div className="max-w-4xl mx-auto w-full space-y-8 pb-12">
+            <div className="flex justify-between items-center border-b border-outline-variant pb-4">
+              <div>
+                <h1 className="text-headline-md font-bold text-on-surface">Support</h1>
+                <p className="text-body-md text-secondary">Get help from the DocuSense team</p>
+              </div>
+              <button onClick={() => setViewMode('chat')} className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl font-label-md hover:opacity-90 transition-all shadow-sm">
+                <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+                Back
+              </button>
+            </div>
+
+            {/* Coming Soon Banner */}
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50 border border-teal-100 p-10 flex flex-col items-center text-center gap-6">
+              <div className="absolute -top-10 -right-10 w-40 h-40 bg-teal-400/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-cyan-400/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="w-20 h-20 rounded-2xl bg-white border border-outline-variant shadow-lg flex items-center justify-center">
+                <span className="material-symbols-outlined text-teal-600 text-[44px]" style={{ fontVariationSettings: "'FILL' 1" }}>support_agent</span>
+              </div>
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-[12px] font-bold mb-3">
+                  <span className="material-symbols-outlined text-[14px]">construction</span>
+                  Coming Soon
+                </div>
+                <h2 className="text-headline-md font-bold text-on-surface">Live Support Portal</h2>
+                <p className="text-body-md text-secondary mt-2 max-w-lg">Our ticketing and live-chat support system is being built. Until then, use the channels below to reach us.</p>
+              </div>
+            </div>
+
+            {/* Contact Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {[
+                { icon: 'code', title: 'GitHub Issues', desc: 'Report bugs, request features, or browse existing issues on our repository.', action: 'Open GitHub', href: 'https://github.com/SkanxGladiatorr07/DocuSense-RAG-ChatBot/issues', color: 'text-[#2da44e]', bg: 'bg-zinc-900', border: 'border-zinc-700' },
+                { icon: 'mail', title: 'Email Support', desc: 'Send a detailed description of your issue and we will get back within 48 hours.', action: 'Send Email', href: 'mailto:support@docusense.ai', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
+                { icon: 'forum', title: 'Community Forum', desc: 'Ask questions, share tips, and learn from other DocuSense users in our community.', action: 'Join Forum', href: '#', color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-100' },
+              ].map((item) => (
+                <a key={item.title} href={item.href} target="_blank" rel="noopener noreferrer"
+                  className={`p-6 ${item.bg} border ${item.border} rounded-2xl shadow-sm flex flex-col gap-4 hover:shadow-md transition-all hover:-translate-y-0.5 group`}>
+                  <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                    <span className={`material-symbols-outlined text-[24px] ${item.color}`} style={{ fontVariationSettings: "'FILL' 1" }}>{item.icon}</span>
+                  </div>
+                  <div>
+                    <h3 className={`font-bold text-[15px] ${item.bg === 'bg-zinc-900' ? 'text-white' : 'text-on-surface'}`}>{item.title}</h3>
+                    <p className={`text-[13px] mt-1 leading-relaxed ${item.bg === 'bg-zinc-900' ? 'text-zinc-400' : 'text-secondary'}`}>{item.desc}</p>
+                  </div>
+                  <div className={`flex items-center gap-1.5 text-[13px] font-bold mt-auto ${item.color} group-hover:underline`}>
+                    {item.action}
+                    <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                  </div>
+                </a>
+              ))}
+            </div>
+
+            {/* FAQ */}
+            <div className="bg-white border border-outline-variant rounded-2xl shadow-sm p-6 space-y-4">
+              <h3 className="font-bold text-title-md text-on-surface">Frequently Asked Questions</h3>
+              {[
+                { q: 'Why does my document show "failed" status?', a: 'This usually means the embedding step hit API rate limits. Delete the document, wait 60 seconds, and re-upload. With batch embedding (100 chunks per request), most documents index in under 5 seconds.' },
+                { q: 'Which file formats are supported?', a: 'DocuSense supports PDF, DOCX, and TXT files up to 50 MB each. Scanned PDFs without an OCR text layer may not extract text correctly.' },
+                { q: 'Can I search across multiple documents?', a: 'Yes. Leave the document filter empty in the chat to search your entire indexed corpus. You can also restrict search to a specific document.' },
+                { q: 'How accurate are the AI answers?', a: 'Answers are grounded strictly in your uploaded documents. The LLM is instructed not to hallucinate. Low confidence scores (< 0.5) indicate weak semantic matches.' },
+              ].map((faq, i) => (
+                <details key={i} className="group border border-outline-variant rounded-xl overflow-hidden">
+                  <summary className="flex items-center justify-between p-4 cursor-pointer select-none hover:bg-surface-container-low transition-colors">
+                    <span className="font-medium text-on-surface text-body-md">{faq.q}</span>
+                    <span className="material-symbols-outlined text-outline text-[20px] group-open:rotate-180 transition-transform duration-200">expand_more</span>
+                  </summary>
+                  <div className="px-4 pb-4 text-body-md text-secondary leading-relaxed">{faq.a}</div>
+                </details>
+              ))}
+            </div>
+          </div>
+        </main>
+
       ) : (
-        /* Analytics View */
+        /* ── Analytics View ── */
         <main className="lg:ml-[280px] pt-16 h-screen flex flex-col overflow-y-auto bg-surface-container-lowest p-8">
           <div className="max-w-6xl mx-auto w-full space-y-8 pb-12">
             <div className="flex justify-between items-center border-b border-outline-variant pb-4">
