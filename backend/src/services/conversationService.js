@@ -124,7 +124,7 @@ const addMessage = async (conversationId, userId, payload) => {
       $inc: { messageCount: 1 },
       $set: { lastMessageAt: new Date() },
     },
-    { new: false } // return pre-update document
+    { returnDocument: 'before' } // return pre-update document (replaces deprecated { new: false })
   );
 
   if (!oldConversation) {

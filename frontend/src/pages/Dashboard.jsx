@@ -14,6 +14,7 @@ const Dashboard = () => {
   const [documents, setDocuments] = useState([])
   const [analytics, setAnalytics] = useState(null)
   const [deletingDocId, setDeletingDocId] = useState(null)
+  const [confirmArchive, setConfirmArchive] = useState(false)
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [loadingChat, setLoadingChat] = useState(false)
   const [loadingDocs, setLoadingDocs] = useState(false)
@@ -119,7 +120,16 @@ const Dashboard = () => {
     setLoadingHistory(true)
     try {
       const res = await api.get(`/conversations/${id}`)
-      setMessages(res.data.data.messages || [])
+      // Historical messages from the API have question/answer but no sources/isLoading.
+      // Normalise them so the renderer always sees the same shape.
+      const rawMessages = res.data.data.messages || []
+      const normalisedMessages = rawMessages.map(msg => ({
+        ...msg,
+        sources: msg.sources || [],
+        isLoading: false,
+        isError: msg.isError || false,
+      }))
+      setMessages(normalisedMessages)
     } catch (err) {
       showToast(err.message || 'Failed to load chat history', 'error')
     } finally {
@@ -145,8 +155,11 @@ const Dashboard = () => {
 
   const handleClearChat = async () => {
     if (!activeConversationId || loadingHistory || loadingChat || uploadState.loading) return
-    if (!window.confirm('Are you sure you want to archive this chat?')) return
-    
+    setConfirmArchive(true)
+  }
+
+  const handleConfirmArchive = async () => {
+    setConfirmArchive(false)
     try {
       await api.delete(`/conversations/${activeConversationId}`)
       setConversations(prev => prev.filter(c => c._id !== activeConversationId))
@@ -536,7 +549,7 @@ const Dashboard = () => {
             }`}
           >
             <span className="material-symbols-outlined">analytics</span>
-            <span className="font-label-md text-label-md">Analytic</span>
+            <span className="font-label-md text-label-md">Analytics</span>
           </button>
           <button 
             disabled={isActionPending}
@@ -622,6 +635,27 @@ const Dashboard = () => {
               </div>
             )}
           </div>
+
+          {/* Archive Confirmation Banner */}
+          {confirmArchive && (
+            <div className="flex items-center justify-between px-8 py-3 bg-amber-50 border-b border-amber-200">
+              <span className="text-body-md text-amber-800 font-medium">Archive this conversation? Its history will be preserved but removed from your active chats.</span>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleConfirmArchive}
+                  className="px-4 py-1.5 bg-amber-600 text-white rounded-lg text-label-md font-medium hover:bg-amber-700 transition-colors"
+                >
+                  Yes, Archive
+                </button>
+                <button
+                  onClick={() => setConfirmArchive(false)}
+                  className="px-4 py-1.5 bg-white border border-outline-variant text-secondary rounded-lg text-label-md font-medium hover:bg-surface-container transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
           
           {/* Chat Area */}
           <div 
@@ -753,7 +787,7 @@ const Dashboard = () => {
                   <textarea 
                     ref={textareaRef}
                     value={inputText}
-                    onChange={(e) => setInputText(e.target.value)}
+                    onChange={(e) => setInputText(e.target.value.slice(0, 2000))}
                     disabled={isActionPending}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
@@ -786,7 +820,7 @@ const Dashboard = () => {
                       </button>
                     </div>
                     <div className="flex items-center gap-4">
-                      <span className="text-[11px] text-outline font-medium">{inputText.length} / 2000</span>
+                      <span className={`text-[11px] font-medium ${ inputText.length >= 1900 ? 'text-red-500' : 'text-outline' }`}>{inputText.length} / 2000</span>
                       <button 
                         type="submit"
                         disabled={isActionPending || !inputText.trim()}
@@ -892,11 +926,15 @@ const Dashboard = () => {
                         <div className="overflow-hidden">
                           <h4 className="font-bold text-on-surface truncate max-w-lg">{analytics.largestDocument.originalName}</h4>
                           <p className="text-outline text-body-md font-code">
-                            {(analytics.largestDocument.fileSize / 1024).toFixed(1)} KB | {analytics.largestDocument.fileType}
+                           {((analytics.largestDocument.fileSize || 0) / 1024).toFixed(1)} KB | {analytics.largestDocument.fileType}
                           </p>
                         </div>
                       </div>
-                      <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full font-label-md font-bold uppercase shrink-0">
+                      <span className={`px-3 py-1 rounded-full font-label-md font-bold uppercase shrink-0 ${
+                          analytics.largestDocument.status === 'indexed' ? 'bg-emerald-100 text-emerald-700' :
+                          analytics.largestDocument.status === 'failed' ? 'bg-red-100 text-red-700' :
+                          'bg-amber-100 text-amber-700'
+                        }`}>
                         {analytics.largestDocument.status}
                       </span>
                     </div>

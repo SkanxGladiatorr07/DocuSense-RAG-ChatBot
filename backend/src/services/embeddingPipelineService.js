@@ -4,7 +4,7 @@
  */
 
 const { Chunk, Document } = require('../models');
-const { generateEmbedding, generateEmbeddingsBatch } = require('./embeddingService');
+const { generateEmbeddingsBatch } = require('./embeddingService');
 const AppError = require('../utils/AppError');
 const logger = require('../utils/logger');
 const { STATUSES } = require('./processingService');

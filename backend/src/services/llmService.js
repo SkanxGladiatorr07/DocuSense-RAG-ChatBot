@@ -82,7 +82,7 @@ const geminiProvider = {
    */
   async generate(prompt, options = {}) {
     const model          = options.model          || DEFAULT_GEMINI_MODEL;
-    const maxOutputTokens = options.maxOutputTokens || DEFAULT_MAX_OUTPUT_TOKENS;
+    const maxOutputTokens = options.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS;
     const temperature    = options.temperature    ?? DEFAULT_TEMPERATURE;
 
     const apiKey = env.geminiApiKey;
@@ -199,7 +199,7 @@ const groqProvider = {
 
   async generate(prompt, options = {}) {
     const model          = options.model          || 'llama-3.3-70b-versatile';
-    const maxOutputTokens = options.maxOutputTokens || DEFAULT_MAX_OUTPUT_TOKENS;
+    const maxOutputTokens = options.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS;
     const temperature    = options.temperature    ?? DEFAULT_TEMPERATURE;
 
     const apiKey = env.groqApiKey;
