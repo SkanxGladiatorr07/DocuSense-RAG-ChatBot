@@ -29,4 +29,5 @@ module.exports = {
   citationBuilderService: require('./citationBuilderService'),
   analyticsService: require('./analyticsService'),
   cacheService: require('./cacheService'),
+  insightsService: require('./insightsService'),
 };
