@@ -128,6 +128,56 @@ const documentSchema = new mongoose.Schema(
       type   : Date,
       default: null,
     },
+
+    // ── Document Insights ─────────────────────────────────────────────────────
+
+    /** A short 4-5 sentence summary of the document. */
+    summary: {
+      type   : String,
+      default: null,
+    },
+
+    /** A detailed, comprehensive summary of the document. */
+    detailedSummary: {
+      type   : String,
+      default: null,
+    },
+
+    /** Key topics discussed in the document. */
+    keyTopics: {
+      type   : [String],
+      default: [],
+    },
+
+    /** Important policies, rules, or points from the document. */
+    importantPoints: {
+      type   : [String],
+      default: [],
+    },
+
+    /** Key dates found within the document. */
+    importantDates: {
+      type   : [String],
+      default: [],
+    },
+
+    /** Keywords extracted from the document. */
+    keywords: {
+      type   : [String],
+      default: [],
+    },
+
+    /** AI-suggested natural language questions about the document. */
+    suggestedQuestions: {
+      type   : [String],
+      default: [],
+    },
+
+    /** Timestamp of when the document insights were generated. */
+    insightsGeneratedAt: {
+      type   : Date,
+      default: null,
+    },
   },
   {
     timestamps: true, // Adds createdAt and updatedAt automatically
