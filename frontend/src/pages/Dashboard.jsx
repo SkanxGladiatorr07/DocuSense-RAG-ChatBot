@@ -1100,10 +1100,10 @@ const Dashboard = () => {
           <div className="border-t border-outline-variant bg-white p-6 shrink-0 shadow-[0_-4px_24px_-12px_rgba(0,0,0,0.1)]">
             <div className="max-w-4xl mx-auto">
               {insightsData && (
-                <div className="flex flex-col gap-2 mb-4 animate-fade-in text-left">
-                  <div className="flex items-center justify-between text-[11px] font-bold text-outline uppercase tracking-wider">
+                <div className="flex flex-col gap-2 mb-3 animate-fade-in text-left">
+                  <div className="flex items-center justify-between text-[10px] font-bold text-outline uppercase tracking-wider">
                     <div className="flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-[15px] text-primary">auto_awesome</span>
+                      <span className="material-symbols-outlined text-[14px] text-primary">auto_awesome</span>
                       <span>Suggested Questions for {insightsDocName}:</span>
                     </div>
                     <button
@@ -1112,29 +1112,21 @@ const Dashboard = () => {
                       className="text-primary hover:underline font-bold normal-case flex items-center gap-0.5"
                     >
                       View All Insights
-                      <span className="material-symbols-outlined text-[12px]">open_in_new</span>
+                      <span className="material-symbols-outlined text-[11px]">open_in_new</span>
                     </button>
                   </div>
-                  <div className="flex flex-wrap gap-2 max-h-[72px] overflow-y-auto custom-scrollbar py-1">
-                    {/* Summary Button */}
-                    <button
-                      type="button"
-                      onClick={() => handleSuggestedQuestionClick('Summarize document')}
-                      className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-body-sm font-medium rounded-full transition-all active:scale-[0.98] flex items-center gap-1.5"
-                    >
-                      <span className="material-symbols-outlined text-[14px]">summarize</span>
-                      Summarize document
-                    </button>
-                    {/* Suggested questions from API */}
-                    {(insightsData.suggestedQuestions || []).slice(0, 4).map((q, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => handleSuggestedQuestionClick(q)}
-                        className="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 text-zinc-700 text-body-sm font-medium rounded-full transition-all active:scale-[0.98]"
-                      >
-                        {q}
-                      </button>
+                  <div className="flex flex-col gap-1.5 max-h-[120px] overflow-y-auto custom-scrollbar py-0.5">
+                    {/* Suggested questions from API — one per line, smaller */}
+                    {(insightsData.suggestedQuestions || []).slice(0, 3).map((q, i) => (
+                      <div key={i} className="flex">
+                        <button
+                          type="button"
+                          onClick={() => handleSuggestedQuestionClick(q)}
+                          className="px-3 py-1 bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 text-zinc-700 text-[12px] font-medium rounded-full transition-all active:scale-[0.98] text-left truncate max-w-full"
+                        >
+                          {q}
+                        </button>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -1142,7 +1134,7 @@ const Dashboard = () => {
 
               <form onSubmit={handleSendMessage} className="relative group">
                 <div className="absolute inset-0 bg-primary/5 rounded-2xl -m-0.5 opacity-0 group-focus-within:opacity-100 transition-opacity pointer-events-none"></div>
-                <div className="relative bg-white border border-outline-variant rounded-2xl p-3 focus-within:border-primary transition-all ring-primary/20 focus-within:ring-4">
+                <div className="relative bg-white border border-outline-variant rounded-2xl px-3.5 py-2 focus-within:border-primary transition-all ring-primary/20 focus-within:ring-4">
                   <textarea 
                     ref={textareaRef}
                     value={inputText}
@@ -1156,7 +1148,7 @@ const Dashboard = () => {
                     }}
                     className="w-full resize-none border-none focus:ring-0 text-body-lg text-on-surface placeholder:text-outline/60 outline-none disabled:opacity-50" 
                     placeholder={isActionPending ? 'Please wait...' : 'Ask a question about your documents...'} 
-                    rows="2"
+                    rows="1"
                   />
                   <div className="flex items-center justify-between mt-2 pt-2 border-t border-outline-variant/30">
                     <div className="flex items-center gap-2">
@@ -1177,6 +1169,17 @@ const Dashboard = () => {
                         <span className="material-symbols-outlined">language</span>
                         <span className="text-label-md">Web Search</span>
                       </button>
+                      {insightsData && (
+                        <button 
+                          type="button" 
+                          onClick={() => handleSuggestedQuestionClick('Summarize document')}
+                          disabled={isActionPending}
+                          className="p-2 text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 font-medium"
+                        >
+                          <span className="material-symbols-outlined">summarize</span>
+                          <span className="text-label-md">Summarize</span>
+                        </button>
+                      )}
                     </div>
                     <div className="flex items-center gap-4">
                       <span className={`text-[11px] font-medium ${ inputText.length >= 1900 ? 'text-red-500' : 'text-outline' }`}>{inputText.length} / 2000</span>
