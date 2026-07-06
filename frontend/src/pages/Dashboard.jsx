@@ -324,11 +324,67 @@ const Dashboard = () => {
     }
   }
 
+  const sendDocumentSummaryDirectly = async () => {
+    if (!insightsData) return
+    setLoadingChat(true)
+    
+    // Create conversation if none active
+    let currentConversationId = activeConversationId
+    if (!currentConversationId) {
+      try {
+        const timeStr = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+        const title = `Chat — ${new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short' })} (${timeStr})`
+        const res = await api.post('/conversations', { title })
+        const newConv = res.data.data.conversation
+        setConversations(prev => [newConv, ...prev])
+        currentConversationId = newConv._id
+        setActiveConversationId(newConv._id)
+      } catch (err) {
+        showToast('Failed to auto-create conversation.', 'error')
+        setLoadingChat(false)
+        return
+      }
+    }
+
+    const tempMessage = {
+      _id: Date.now().toString(),
+      question: "Summarize document",
+      answer: '',
+      isLoading: true
+    }
+    setMessages(prev => [...prev, tempMessage])
+
+    // Wait 600ms to simulate reading the document, then post the summary
+    setTimeout(() => {
+      const summaryText = `### Document Summary for **${insightsDocName}**\n\n**Brief Summary**:\n${insightsData.summary}\n\n**Detailed Summary**:\n${insightsData.detailedSummary}`
+      
+      setMessages(prev => 
+        prev.map(msg => 
+          msg._id === tempMessage._id 
+            ? {
+                ...msg,
+                answer: summaryText,
+                sources: [{ originalName: insightsDocName }],
+                isLoading: false
+              }
+            : msg
+        )
+      )
+      setLoadingChat(false)
+      fetchConversations()
+    }, 600)
+  }
+
   const handleSuggestedQuestionClick = (question) => {
     setShowInsightsModal(false)
     setViewMode('chat')
     setInputText(question)
-    sendQuestionDirectly(question)
+    
+    if (question === 'Summarize document') {
+      sendDocumentSummaryDirectly()
+    } else {
+      sendQuestionDirectly(question)
+    }
   }
 
   const handleDocumentClick = async (doc) => {
@@ -1043,6 +1099,47 @@ const Dashboard = () => {
           {/* Input Panel */}
           <div className="border-t border-outline-variant bg-white p-6 shrink-0 shadow-[0_-4px_24px_-12px_rgba(0,0,0,0.1)]">
             <div className="max-w-4xl mx-auto">
+              {insightsData && (
+                <div className="flex flex-col gap-2 mb-4 animate-fade-in text-left">
+                  <div className="flex items-center justify-between text-[11px] font-bold text-outline uppercase tracking-wider">
+                    <div className="flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[15px] text-primary">auto_awesome</span>
+                      <span>Suggested Questions for {insightsDocName}:</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowInsightsModal(true)}
+                      className="text-primary hover:underline font-bold normal-case flex items-center gap-0.5"
+                    >
+                      View All Insights
+                      <span className="material-symbols-outlined text-[12px]">open_in_new</span>
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2 max-h-[72px] overflow-y-auto custom-scrollbar py-1">
+                    {/* Summary Button */}
+                    <button
+                      type="button"
+                      onClick={() => handleSuggestedQuestionClick('Summarize document')}
+                      className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-body-sm font-medium rounded-full transition-all active:scale-[0.98] flex items-center gap-1.5"
+                    >
+                      <span className="material-symbols-outlined text-[14px]">summarize</span>
+                      Summarize document
+                    </button>
+                    {/* Suggested questions from API */}
+                    {(insightsData.suggestedQuestions || []).slice(0, 4).map((q, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => handleSuggestedQuestionClick(q)}
+                        className="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 text-zinc-700 text-body-sm font-medium rounded-full transition-all active:scale-[0.98]"
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <form onSubmit={handleSendMessage} className="relative group">
                 <div className="absolute inset-0 bg-primary/5 rounded-2xl -m-0.5 opacity-0 group-focus-within:opacity-100 transition-opacity pointer-events-none"></div>
                 <div className="relative bg-white border border-outline-variant rounded-2xl p-3 focus-within:border-primary transition-all ring-primary/20 focus-within:ring-4">
