@@ -445,6 +445,42 @@ const bulkDocuments = asyncHandler(async (req, res) => {
   return successResponse(res, 200, `Bulk document ${action} complete.`, result);
 });
 
+// ── GET /api/v1/documents/:id/insights ─────────────────────────────────────────
+
+/**
+ * Fetch insights (summary, detailedSummary, keyTopics, importantPoints, keyDates, keywords, questions)
+ * for a specific document.
+ *
+ * @route  GET /api/v1/documents/:id/insights
+ * @access Private
+ */
+const getDocumentInsights = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  if (!id.match(/^[a-f\d]{24}$/i)) {
+    throw AppError.badRequest(`"${id}" is not a valid document ID.`);
+  }
+
+  const document = await documentService.getDocumentById(id, req.user._id);
+
+  // If insights do not exist yet and document is indexed, generate them now
+  if (!document.insightsGeneratedAt && document.status === 'indexed') {
+    const { insightsService } = require('../services');
+    const generated = await insightsService.generateInsights(id, req.user._id);
+    return successResponse(res, 200, 'Document insights fetched successfully.', generated);
+  }
+
+  return successResponse(res, 200, 'Document insights fetched successfully.', {
+    summary           : document.summary,
+    detailedSummary   : document.detailedSummary,
+    keyTopics         : document.keyTopics || [],
+    importantPoints   : document.importantPoints || [],
+    importantDates     : document.importantDates || [],
+    keywords          : document.keywords || [],
+    suggestedQuestions: document.suggestedQuestions || [],
+  });
+});
+
 // ── Exports ───────────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -458,4 +494,5 @@ module.exports = {
   deleteDocument,
   reprocessDocument,
   bulkDocuments,
+  getDocumentInsights,
 };

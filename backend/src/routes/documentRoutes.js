@@ -35,6 +35,7 @@ const {
   deleteDocument,
   reprocessDocument,
   bulkDocuments,
+  getDocumentInsights,
 } = require('../controllers/documentController');
 
 const router = express.Router();
@@ -95,6 +96,16 @@ router.get(
   '/:id',
   authenticate,
   getDocument
+);
+
+// ── GET /:id/insights — fetch AI-generated insights for a document ───────────
+//
+//   Returns 400 for a malformed id, 404 if not found or not owned by caller.
+//
+router.get(
+  '/:id/insights',
+  authenticate,
+  getDocumentInsights
 );
 
 // ── DELETE /:id — delete document file, metadata, and chunks/embeddings (owner)
