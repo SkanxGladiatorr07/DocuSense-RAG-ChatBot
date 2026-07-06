@@ -9,7 +9,7 @@ const logger = require('../utils/logger');
 const AppError = require('../utils/AppError');
 
 /** Maximum character length of text to send to Gemini for insights. */
-const MAX_TEXT_LENGTH = 35000;
+const MAX_TEXT_LENGTH = 4000;
 
 /**
  * Truncate/select representative text from a large document.
@@ -89,11 +89,11 @@ const generateInsights = async (documentId, userId) => {
 
 Your response MUST be a single, valid JSON object with EXACTLY the following keys (do not include any other markdown decoration or text outside the JSON):
 {
-  "summary": "A concise 4-5 sentence summary of the document.",
-  "detailedSummary": "A detailed, comprehensive multi-paragraph summary of the document, explaining main points and structure.",
+  "summary": "A concise 3-4 sentence summary of the document.",
+  "detailedSummary": "A comprehensive 1-2 paragraph summary of the document, highlighting main points.",
   "keyTopics": ["Topic 1", "Topic 2", ...],
   "importantPoints": ["Key policy, rule, or point 1", "Key policy, rule, or point 2", ...],
-  "importantDates": ["Date 1 (e.g. October 15, 2024) - Description", ...],
+  "importantDates": ["Date 1 - Description", ...],
   "keywords": ["Keyword 1", "Keyword 2", ...],
   "suggestedQuestions": ["Suggested question 1", "Suggested question 2", ...]
 }
@@ -111,13 +111,18 @@ JSON Response:`;
   let responseText;
   try {
     const generation = await llmService._geminiProvider.generate(prompt, {
-      maxOutputTokens: 2048,
-      temperature: 0.2
+      model: 'gemini-flash-latest',
+      maxOutputTokens: 8192,
+      temperature: 0.2,
+      responseMimeType: 'application/json',
+      thinkingConfig: {
+        thinkingBudget: 0
+      }
     });
     responseText = generation.text;
   } catch (err) {
     logger.error(`[insightsService.generateInsights] LLM generation failed: ${err.message}`);
-    throw AppError.badGateway(`Insights generation failed: ${err.message}`);
+    throw new AppError(502, `Insights generation failed: ${err.message}`);
   }
 
   // 4. Parse the generated JSON

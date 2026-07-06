@@ -123,6 +123,9 @@ const geminiProvider = {
           generationConfig: {
             maxOutputTokens,
             temperature,
+            ...(options.responseMimeType ? { responseMimeType: options.responseMimeType } : {}),
+            ...(options.responseSchema ? { responseSchema: options.responseSchema } : {}),
+            ...(options.thinkingConfig ? { thinkingConfig: options.thinkingConfig } : {}),
           },
         }),
       });
