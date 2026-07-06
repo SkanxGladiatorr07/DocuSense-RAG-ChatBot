@@ -274,20 +274,32 @@ const Dashboard = () => {
     setLoadingChat(true)
 
     try {
-      const res = await api.post(`/conversations/${currentConversationId}/query`, { question: questionText })
-      const answerData = res.data.data
+      const res = await api.post('/chat/ask', {
+        question: questionText,
+        conversationId: currentConversationId
+      })
+      const ragResult = res.data.data
 
       setMessages(prev => 
         prev.map(msg => 
           msg._id === tempMessage._id 
-            ? { ...msg, answer: answerData.answer, sources: answerData.sources || [], isLoading: false }
+            ? {
+                ...msg,
+                answer: ragResult.answer,
+                sources: ragResult.sources || [],
+                citations: ragResult.citations || [],
+                isLoading: false
+              }
             : msg
         )
       )
 
+      fetchConversations()
+
       // Trigger rating count check
-      const hasRatedKey = `rating_asked_${user?._id || 'guest'}`
-      if (localStorage.getItem(hasRatedKey) !== 'true') {
+      const hasRatedKey = `has_rated_${user?._id || 'guest'}`
+      const hasRated = localStorage.getItem(hasRatedKey)
+      if (!hasRated) {
         const countKey = `question_count_${user?._id || 'guest'}`
         const newCount = (parseInt(localStorage.getItem(countKey), 10) || 0) + 1
         localStorage.setItem(countKey, newCount)
