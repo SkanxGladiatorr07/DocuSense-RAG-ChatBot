@@ -34,6 +34,11 @@ const Dashboard = () => {
   const [showRatingModal, setShowRatingModal] = useState(false)
   const [hoverStar, setHoverStar] = useState(0)
 
+  // Document Insights Modal States
+  const [showInsightsModal, setShowInsightsModal] = useState(false)
+  const [insightsData, setInsightsData] = useState(null)
+  const [insightsDocName, setInsightsDocName] = useState('')
+
   // Sync viewMode with query params (?view=help / ?view=support)
   useEffect(() => {
     const params = new URLSearchParams(location.search)
@@ -235,6 +240,104 @@ const Dashboard = () => {
     }
   }
 
+  // ── Document Insights Helpers ──────────────────────────────────────────────
+
+  const sendQuestionDirectly = async (questionText) => {
+    if (!questionText.trim() || loadingChat || loadingHistory || uploadState.loading) return
+
+    let currentConversationId = activeConversationId
+
+    // 1. Create a conversation if none is active
+    if (!currentConversationId) {
+      try {
+        const timeStr = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+        const title = `Chat — ${new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short' })} (${timeStr})`
+        const res = await api.post('/conversations', { title })
+        const newConv = res.data.data.conversation
+        setConversations(prev => [newConv, ...prev])
+        currentConversationId = newConv._id
+        setActiveConversationId(newConv._id)
+      } catch (err) {
+        showToast('Failed to auto-create conversation.', 'error')
+        return
+      }
+    }
+
+    // 2. Add local optimistic message block
+    const tempMessage = {
+      _id: Date.now().toString(),
+      question: questionText,
+      answer: '',
+      isLoading: true
+    }
+    setMessages(prev => [...prev, tempMessage])
+    setLoadingChat(true)
+
+    try {
+      const res = await api.post(`/conversations/${currentConversationId}/query`, { question: questionText })
+      const answerData = res.data.data
+
+      setMessages(prev => 
+        prev.map(msg => 
+          msg._id === tempMessage._id 
+            ? { ...msg, answer: answerData.answer, sources: answerData.sources || [], isLoading: false }
+            : msg
+        )
+      )
+
+      // Trigger rating count check
+      const hasRatedKey = `rating_asked_${user?._id || 'guest'}`
+      if (localStorage.getItem(hasRatedKey) !== 'true') {
+        const countKey = `question_count_${user?._id || 'guest'}`
+        const newCount = (parseInt(localStorage.getItem(countKey), 10) || 0) + 1
+        localStorage.setItem(countKey, newCount)
+        if (newCount === 3) {
+          setTimeout(() => {
+            setShowRatingModal(true)
+            localStorage.setItem(hasRatedKey, 'true')
+          }, 1200)
+        }
+      }
+    } catch (err) {
+      showToast(err.message || 'Chat generation failed.', 'error')
+      setMessages(prev => 
+        prev.map(msg => 
+          msg._id === tempMessage._id 
+            ? { ...msg, answer: 'Sorry, I failed to generate an answer due to an error.', isError: true, isLoading: false }
+            : msg
+        )
+      )
+    } finally {
+      setLoadingChat(false)
+    }
+  }
+
+  const handleSuggestedQuestionClick = (question) => {
+    setShowInsightsModal(false)
+    setViewMode('chat')
+    setInputText(question)
+    sendQuestionDirectly(question)
+  }
+
+  const handleDocumentClick = async (doc) => {
+    if (isActionPending) return
+    if (doc.status !== 'indexed') {
+      showToast(`Document is currently in "${doc.status}" status.`, 'info')
+      return
+    }
+    setLoadingDocs(true)
+    try {
+      const res = await api.get(`/documents/${doc._id}/insights`)
+      setInsightsDocName(doc.originalName)
+      setInsightsData(res.data.data)
+      setShowInsightsModal(true)
+    } catch (err) {
+      showToast(err.message || 'Failed to fetch document insights.', 'error')
+    } finally {
+      setLoadingDocs(false)
+    }
+  }
+
   // ── Ingestion Pipeline ──────────────────────────────────────────────────────
 
   const triggerIngestionPipeline = async (file) => {
@@ -274,9 +377,18 @@ const Dashboard = () => {
       setUploadState({ loading: true, progress: 'Generating vectors...' })
       await api.post(`/documents/${docId}/embed`)
 
+      // Fetch AI Insights
+      setUploadState({ loading: true, progress: 'Generating insights...' })
+      const insightsRes = await api.get(`/documents/${docId}/insights`)
+      const insights = insightsRes.data.data
+
       setUploadState({ loading: false, progress: '' })
       fetchDocuments()
       fetchAnalytics()
+      
+      setInsightsDocName(file.name)
+      setInsightsData(insights)
+      setShowInsightsModal(true)
       showToast(`${file.name} fully processed and indexed successfully!`)
     } catch (err) {
       showToast(err.message || 'Ingestion pipeline failed.', 'error')
@@ -514,7 +626,11 @@ const Dashboard = () => {
                 <p className="text-[12px] text-outline italic px-2">No documents indexed yet.</p>
               ) : (
                 documents.map(doc => (
-                  <div key={doc._id} className="group flex items-center justify-between p-2 rounded-xl hover:bg-surface-container transition-colors cursor-pointer">
+                  <div 
+                    key={doc._id} 
+                    onClick={() => handleDocumentClick(doc)}
+                    className="group flex items-center justify-between p-2 rounded-xl hover:bg-surface-container transition-colors cursor-pointer"
+                  >
                     <div className="flex items-center gap-3 overflow-hidden w-2/3">
                       <span className={`material-symbols-outlined text-[20px] ${
                         doc.status === 'failed' ? 'text-red-400' : 'text-outline'
@@ -1265,6 +1381,129 @@ const Dashboard = () => {
             >
               Maybe Later
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* AI Document Insights Modal */}
+      {showInsightsModal && insightsData && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in p-4 overflow-y-auto">
+          <div className="bg-white border border-outline-variant rounded-2xl max-w-2xl w-full shadow-2xl flex flex-col overflow-hidden max-h-[85vh] animate-fade-in-up">
+            {/* Header */}
+            <div className="bg-primary/5 px-6 py-4 border-b border-outline-variant flex items-center justify-between">
+              <div className="flex items-center gap-3 overflow-hidden">
+                <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-white shrink-0">
+                  <span className="material-symbols-outlined text-[22px]">auto_awesome</span>
+                </div>
+                <div className="overflow-hidden">
+                  <h3 className="font-bold text-on-surface text-title-md truncate">{insightsDocName}</h3>
+                  <p className="text-[11px] text-primary font-bold uppercase tracking-wider">AI Document Insights</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowInsightsModal(false)}
+                className="p-1.5 hover:bg-surface-container rounded-lg text-outline hover:text-on-surface transition-colors"
+                title="Close"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            {/* Scrollable Body */}
+            <div className="p-6 overflow-y-auto space-y-6 custom-scrollbar text-left">
+              {/* Summary */}
+              <div className="space-y-2">
+                <h4 className="font-bold text-on-surface text-label-lg uppercase tracking-wider text-primary">Summary</h4>
+                <p className="text-body-md text-on-surface leading-relaxed font-semibold">{insightsData.summary}</p>
+                {insightsData.detailedSummary && (
+                  <p className="text-body-md text-secondary leading-relaxed whitespace-pre-wrap mt-2">{insightsData.detailedSummary}</p>
+                )}
+              </div>
+
+              {/* Key Topics & Keywords */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-outline-variant/30">
+                {insightsData.keyTopics && insightsData.keyTopics.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="font-bold text-on-surface text-label-lg uppercase tracking-wider text-primary">Key Topics</h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {insightsData.keyTopics.map((topic, i) => (
+                        <span key={i} className="px-2.5 py-1 bg-indigo-50 border border-indigo-100 text-indigo-700 text-body-sm font-medium rounded-lg">
+                          {topic}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {insightsData.keywords && insightsData.keywords.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="font-bold text-on-surface text-label-lg uppercase tracking-wider text-primary">Keywords</h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {insightsData.keywords.map((kw, i) => (
+                        <span key={i} className="px-2.5 py-1 bg-zinc-100 border border-zinc-200 text-zinc-700 text-body-sm font-medium rounded-lg">
+                          {kw}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Important Points */}
+              {insightsData.importantPoints && insightsData.importantPoints.length > 0 && (
+                <div className="space-y-2 pt-4 border-t border-outline-variant/30">
+                  <h4 className="font-bold text-on-surface text-label-lg uppercase tracking-wider text-primary">Key Insights & Rules</h4>
+                  <ul className="list-disc pl-5 space-y-1.5 text-body-md text-secondary">
+                    {insightsData.importantPoints.map((point, i) => (
+                      <li key={i}>{point}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Important Dates */}
+              {insightsData.importantDates && insightsData.importantDates.length > 0 && (
+                <div className="space-y-2 pt-4 border-t border-outline-variant/30">
+                  <h4 className="font-bold text-on-surface text-label-lg uppercase tracking-wider text-primary">Important Dates</h4>
+                  <div className="space-y-2">
+                    {insightsData.importantDates.map((dateStr, i) => (
+                      <div key={i} className="flex items-start gap-2 text-body-md text-secondary">
+                        <span className="material-symbols-outlined text-[18px] text-amber-500 shrink-0">calendar_today</span>
+                        <span>{dateStr}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Suggested Questions */}
+              {insightsData.suggestedQuestions && insightsData.suggestedQuestions.length > 0 && (
+                <div className="space-y-3 pt-4 border-t border-outline-variant/30">
+                  <h4 className="font-bold text-on-surface text-label-lg uppercase tracking-wider text-primary">Suggested Questions to Ask</h4>
+                  <div className="flex flex-col gap-2">
+                    {insightsData.suggestedQuestions.map((q, i) => (
+                      <button
+                        key={i}
+                        onClick={() => handleSuggestedQuestionClick(q)}
+                        className="w-full text-left p-3 rounded-xl border border-outline-variant/60 bg-surface hover:bg-primary/5 hover:border-primary transition-all text-body-md text-on-surface-variant font-medium flex items-center justify-between group active:scale-[0.99]"
+                      >
+                        <span>{q}</span>
+                        <span className="material-symbols-outlined text-[18px] text-outline group-hover:text-primary transition-colors">arrow_forward</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="bg-surface-container px-6 py-4 border-t border-outline-variant flex items-center justify-end">
+              <button 
+                onClick={() => setShowInsightsModal(false)}
+                className="px-5 py-2 bg-zinc-900 text-white rounded-xl text-label-md font-bold hover:opacity-90 transition-all shadow-sm"
+              >
+                Done
+              </button>
+            </div>
           </div>
         </div>
       )}
