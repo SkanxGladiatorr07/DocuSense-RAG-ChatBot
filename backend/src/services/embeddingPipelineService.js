@@ -102,6 +102,16 @@ const runEmbeddingPipeline = async (documentId, userId = null) => {
     }
     await doc.save();
 
+    // Automatically trigger the AI Document Insights generation stage
+    if (doc.status === STATUSES.INDEXED) {
+      try {
+        const { generateInsights } = require('./insightsService');
+        await generateInsights(documentId, userId);
+      } catch (insightErr) {
+        logger.error(`[embeddingPipeline] Failed to auto-generate AI insights for document ${documentId}: ${insightErr.message}`);
+      }
+    }
+
     logger.info(
       `[embeddingPipeline] Pipeline completed for document: ${documentId} | ` +
       `Total: ${chunks.length} | Success: ${successfulEmbeddings} | Skipped: ${skippedCount} | Failed: ${failedEmbeddings} | Status: ${doc.status}`
