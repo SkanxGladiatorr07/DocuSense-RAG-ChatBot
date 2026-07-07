@@ -19,7 +19,7 @@ const AppError             = require('../utils/AppError');
 const mongoose             = require('mongoose');
 const env                  = require('../config/env');
 const logger               = require('../utils/logger');
-const { ragService, promptBuilderService, cacheService, conversationService } = require('../services');
+const { ragService, promptBuilderService, cacheService, conversationService, llmService } = require('../services');
 
 // ── POST /api/v1/chat/ask ─────────────────────────────────────────────────────
 
@@ -191,7 +191,7 @@ const askQuestion = asyncHandler(async (req, res) => {
   // ── Save to Conversation History (if conversationId provided) ─────────────
   if (conversationId) {
     try {
-      await conversationService.addMessage(conversationId, req.user._id, {
+      const message = await conversationService.addMessage(conversationId, req.user._id, {
         question: question.trim(),
         answer: result.answer,
         sources: result.sources || [],
@@ -205,6 +205,29 @@ const askQuestion = asyncHandler(async (req, res) => {
           outputTokens: result.outputTokens || 0,
         }
       });
+
+      // Auto-name the conversation if this is the very first message
+      if (message && message.sequenceIndex === 0) {
+        // Fire background auto-naming asynchronously so we don't block RAG query response time
+        (async () => {
+          try {
+            const prompt = `Based on the user's first question in a new chat session, generate a short, clean, descriptive conversation title. It must be at most 3-4 words. Do not include quotes, markdown, or punctuation.
+            
+Question: "${question.trim()}"
+
+Title:`;
+            const llmRes = await llmService.generate(prompt, { maxOutputTokens: 20, temperature: 0.3 });
+            let cleanTitle = llmRes.text.trim();
+            cleanTitle = cleanTitle.replace(/^["']|["']$/g, '').trim();
+            if (cleanTitle && cleanTitle.length > 0) {
+              await conversationService.updateConversationTitle(conversationId, req.user._id, cleanTitle);
+              logger.info(`[chatController] Conversation ${conversationId} auto-named to "${cleanTitle}"`);
+            }
+          } catch (autoErr) {
+            logger.error(`[chatController] Background auto-naming failed: ${autoErr.message}`);
+          }
+        })();
+      }
     } catch (msgErr) {
       logger.error(`[chatController] Failed to save message to history: ${msgErr.message}`);
     }

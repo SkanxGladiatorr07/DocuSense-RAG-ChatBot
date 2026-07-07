@@ -124,8 +124,8 @@ const Profile = () => {
 
           {/* Avatar + Name */}
           <div className="px-8 pb-6">
-            <div className="flex items-end gap-5 -mt-12 mb-6 relative z-10">
-              <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-primary to-[#6366f1] shadow-lg border-4 border-white flex items-center justify-center shrink-0">
+            <div className="flex flex-col sm:flex-row sm:items-end gap-5 mb-6 relative z-10">
+              <div className="w-24 h-24 -mt-12 rounded-2xl bg-gradient-to-br from-primary to-[#6366f1] shadow-lg border-4 border-white flex items-center justify-center shrink-0">
                 <span className="text-[32px] font-black text-white tracking-tight">{getInitials()}</span>
               </div>
               <div className="mb-2">

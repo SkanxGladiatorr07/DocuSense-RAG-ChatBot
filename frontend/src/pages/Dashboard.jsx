@@ -40,6 +40,10 @@ const Dashboard = () => {
   const [insightsData, setInsightsData] = useState(null)
   const [insightsDocName, setInsightsDocName] = useState('')
 
+  // Renaming States
+  const [editingConvId, setEditingConvId] = useState(null)
+  const [editTitleVal, setEditTitleVal] = useState('')
+
   // Sync viewMode with query params (?view=help / ?view=support)
   useEffect(() => {
     const params = new URLSearchParams(location.search)
@@ -229,6 +233,20 @@ const Dashboard = () => {
     }
   }
 
+  const handleRenameConversation = async (convId, newTitle) => {
+    if (!newTitle || !newTitle.trim()) return
+    try {
+      const res = await api.patch(`/conversations/${convId}/title`, { title: newTitle.trim() })
+      const updatedConv = res.data.data.conversation
+      setConversations(prev =>
+        prev.map(c => c._id === convId ? { ...c, title: updatedConv.title } : c)
+      )
+      showToast('Chat renamed successfully.')
+    } catch (err) {
+      showToast(err.response?.data?.message || err.message || 'Failed to rename conversation', 'error')
+    }
+  }
+
   const handleDeleteDocument = async (docId) => {
     if (uploadState.loading) return
     try {
@@ -312,6 +330,9 @@ const Dashboard = () => {
       )
 
       fetchConversations()
+      if (messages.length === 0) {
+        setTimeout(fetchConversations, 1500)
+      }
 
       // Trigger rating count check
       const hasRatedKey = `has_rated_${user?._id || 'guest'}`
@@ -589,6 +610,9 @@ const Dashboard = () => {
 
       // Refresh conversations list to update messageCount/lastMessageAt
       fetchConversations()
+      if (messages.length === 0) {
+        setTimeout(fetchConversations, 1500)
+      }
 
       // Increment questions count and check for rating modal
       const hasRatedKey = `has_rated_${user?._id || 'guest'}`
@@ -780,33 +804,70 @@ const Dashboard = () => {
             </button>
           </div>
           <div className="flex flex-col space-y-1 max-h-[150px] overflow-y-auto custom-scrollbar">
-            {conversations.map(conv => (
+             {conversations.map(conv => (
               <div key={conv._id} className="group relative flex items-center w-full">
-                <button 
-                  onClick={() => selectConversation(conv._id)}
-                  disabled={isActionPending}
-                  className={`flex-grow flex items-center justify-between p-2 rounded-xl transition-all text-left disabled:opacity-80 disabled:cursor-not-allowed pr-8 ${
-                    activeConversationId === conv._id 
-                      ? 'bg-primary-fixed text-on-primary-fixed border border-primary/10 font-medium' 
-                      : 'hover:bg-surface-container text-on-surface-variant'
-                  }`}
-                >
-                  <div className="flex items-center gap-3 overflow-hidden">
-                    <span className="material-symbols-outlined text-[18px] text-outline">chat_bubble</span>
-                    <span className="text-body-md truncate">{conv.title}</span>
+                {editingConvId === conv._id ? (
+                  <div className="flex-grow flex items-center gap-2 p-1.5 bg-surface-container rounded-xl border border-primary/30 w-full">
+                    <span className="material-symbols-outlined text-[18px] text-primary shrink-0 pl-1">edit</span>
+                    <input
+                      type="text"
+                      value={editTitleVal}
+                      onChange={(e) => setEditTitleVal(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleRenameConversation(conv._id, editTitleVal)
+                        } else if (e.key === 'Escape') {
+                          setEditingConvId(null)
+                        }
+                      }}
+                      onBlur={() => handleRenameConversation(conv._id, editTitleVal)}
+                      autoFocus
+                      className="bg-transparent text-body-md font-medium text-on-surface outline-none w-full py-0.5"
+                    />
                   </div>
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteConversation(conv._id);
-                  }}
-                  disabled={isActionPending}
-                  className="absolute right-2 opacity-0 group-hover:opacity-100 p-1 rounded-md text-outline hover:bg-red-50 hover:text-red-600 transition-all flex items-center justify-center disabled:opacity-0"
-                  title="Archive Chat"
-                >
-                  <span className="material-symbols-outlined text-[16px]">close</span>
-                </button>
+                ) : (
+                  <>
+                    <button 
+                      onClick={() => selectConversation(conv._id)}
+                      disabled={isActionPending}
+                      className={`flex-grow flex items-center justify-between p-2 rounded-xl transition-all text-left disabled:opacity-80 disabled:cursor-not-allowed pr-14 ${
+                        activeConversationId === conv._id 
+                          ? 'bg-primary-fixed text-on-primary-fixed border border-primary/10 font-medium' 
+                          : 'hover:bg-surface-container text-on-surface-variant'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <span className="material-symbols-outlined text-[18px] text-outline">chat_bubble</span>
+                        <span className="text-body-md truncate">{conv.title}</span>
+                      </div>
+                    </button>
+                    <div className="absolute right-2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingConvId(conv._id);
+                          setEditTitleVal(conv.title);
+                        }}
+                        disabled={isActionPending}
+                        className="p-1 rounded-md text-outline hover:bg-surface-container-high hover:text-primary transition-all flex items-center justify-center cursor-pointer"
+                        title="Rename Chat"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">edit</span>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteConversation(conv._id);
+                        }}
+                        disabled={isActionPending}
+                        className="p-1 rounded-md text-outline hover:bg-red-50 hover:text-red-600 transition-all flex items-center justify-center cursor-pointer"
+                        title="Archive Chat"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">close</span>
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             ))}
             {conversations.length === 0 && (
@@ -918,12 +979,47 @@ const Dashboard = () => {
                   <span className="material-symbols-outlined text-[14px] text-tertiary">folder</span>
                 </div>
               </div>
-              <h1 className="text-body-lg font-bold text-on-surface">
-                {activeConversationId 
-                  ? conversations.find(c => c._id === activeConversationId)?.title || 'Chat Workspace'
-                  : 'Start a new conversation to ask questions'
-                }
-              </h1>
+              {activeConversationId && editingConvId === activeConversationId ? (
+                <div className="flex items-center gap-2 bg-surface-container px-3 py-1 rounded-lg border border-primary/30">
+                  <input
+                    type="text"
+                    value={editTitleVal}
+                    onChange={(e) => setEditTitleVal(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleRenameConversation(activeConversationId, editTitleVal)
+                      } else if (e.key === 'Escape') {
+                        setEditingConvId(null)
+                      }
+                    }}
+                    onBlur={() => handleRenameConversation(activeConversationId, editTitleVal)}
+                    autoFocus
+                    className="bg-transparent text-body-lg font-bold text-on-surface outline-none py-0.5 w-64"
+                  />
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 group/header-title">
+                  <h1 className="text-body-lg font-bold text-on-surface">
+                    {activeConversationId 
+                      ? conversations.find(c => c._id === activeConversationId)?.title || 'Chat Workspace'
+                      : 'Start a new conversation to ask questions'
+                    }
+                  </h1>
+                  {activeConversationId && (
+                    <button
+                      onClick={() => {
+                        const currentTitle = conversations.find(c => c._id === activeConversationId)?.title || ''
+                        setEditingConvId(activeConversationId)
+                        setEditTitleVal(currentTitle)
+                      }}
+                      className="p-1 rounded opacity-0 group-hover/header-title:opacity-100 transition-opacity hover:bg-surface-container-high text-outline hover:text-primary cursor-pointer flex items-center justify-center"
+                      title="Rename Chat"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">edit</span>
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
             
             {activeConversationId && (
