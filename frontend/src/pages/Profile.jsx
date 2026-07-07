@@ -16,6 +16,7 @@ const Profile = () => {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
+  const [showEmail, setShowEmail] = useState(false)
 
   // Redirect if not logged in
   useEffect(() => {
@@ -60,6 +61,17 @@ const Profile = () => {
     const m = today.getMonth() - dob.getMonth()
     if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--
     return age >= 0 ? age : null
+  }
+
+  // Email masking utility
+  const maskEmail = (email) => {
+    if (!email) return '—'
+    const [localPart, domain] = email.split('@')
+    if (!domain) return email
+    if (localPart.length <= 2) {
+      return `${localPart}*****@${domain}`
+    }
+    return `${localPart.slice(0, 2)}*****@${domain}`
   }
 
   const handleSave = async (e) => {
@@ -112,7 +124,7 @@ const Profile = () => {
 
           {/* Avatar + Name */}
           <div className="px-8 pb-6">
-            <div className="flex items-end gap-5 -mt-12 mb-6">
+            <div className="flex items-end gap-5 -mt-12 mb-6 relative z-10">
               <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-primary to-[#6366f1] shadow-lg border-4 border-white flex items-center justify-center shrink-0">
                 <span className="text-[32px] font-black text-white tracking-tight">{getInitials()}</span>
               </div>
@@ -126,7 +138,7 @@ const Profile = () => {
                   <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>
                     {user?.role === 'admin' ? 'admin_panel_settings' : 'badge'}
                   </span>
-                  {user?.role === 'admin' ? 'Admin' : 'Employee'}
+                  {user?.role === 'admin' ? 'Admin' : 'Member'}
                 </span>
               </div>
             </div>
@@ -173,15 +185,27 @@ const Profile = () => {
                     </div>
                   </div>
 
-                  {/* Email (read-only) */}
+                  {/* Email (read-only) with toggle eye decryption */}
                   <div className="space-y-1.5">
                     <label className="text-[12px] font-semibold text-secondary flex items-center gap-1.5">
                       <span className="material-symbols-outlined text-[14px]">mail</span>
                       Email Address
                     </label>
-                    <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-surface-container border border-outline-variant/50 cursor-not-allowed">
-                      <span className="text-on-surface text-[14px] font-medium truncate">{user?.email || '—'}</span>
-                      <span className="ml-auto shrink-0 text-[10px] font-bold text-outline bg-surface-container-high px-2 py-0.5 rounded-full">Locked</span>
+                    <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-surface-container border border-outline-variant/50">
+                      <span className="text-on-surface text-[14px] font-medium truncate">
+                        {showEmail ? user?.email : maskEmail(user?.email)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowEmail(prev => !prev)}
+                        className="p-1 rounded-lg text-outline hover:text-primary hover:bg-surface-container-high transition-colors cursor-pointer flex items-center justify-center shrink-0"
+                        title={showEmail ? "Hide email address" : "Show email address"}
+                      >
+                        <span className="material-symbols-outlined text-[18px]">
+                          {showEmail ? 'visibility_off' : 'visibility'}
+                        </span>
+                      </button>
+                      <span className="ml-auto shrink-0 text-[10px] font-bold text-outline bg-surface-container-high px-2 py-0.5 rounded-full cursor-not-allowed">Locked</span>
                     </div>
                   </div>
                 </div>
