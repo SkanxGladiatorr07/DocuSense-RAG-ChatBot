@@ -119,7 +119,23 @@ const Dashboard = () => {
     setLoadingDocs(true)
     try {
       const res = await api.get('/documents')
-      setDocuments(res.data.data.documents || [])
+      const docs = res.data.data.documents || []
+      setDocuments(docs)
+
+      // Auto-load insights for the most recent indexed document if none is active yet
+      if (docs.length > 0) {
+        const indexedDocs = docs.filter(d => d.status === 'indexed')
+        if (indexedDocs.length > 0) {
+          const mostRecentDoc = indexedDocs[0]
+          try {
+            const insightsRes = await api.get(`/documents/${mostRecentDoc._id}/insights`)
+            setInsightsDocName(mostRecentDoc.originalName)
+            setInsightsData(insightsRes.data.data)
+          } catch (e) {
+            console.error('Failed to auto-load insights on startup:', e)
+          }
+        }
+      }
     } catch (err) {
       showToast(err.message || 'Failed to fetch documents', 'error')
     } finally {
