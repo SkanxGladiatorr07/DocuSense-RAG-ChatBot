@@ -71,8 +71,13 @@ export const AuthProvider = ({ children }) => {
     setUser(null)
   }, [])
 
+  // Update user in context after profile save
+  const updateUser = useCallback((updatedUser) => {
+    setUser(updatedUser)
+  }, [])
+
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, register, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   )

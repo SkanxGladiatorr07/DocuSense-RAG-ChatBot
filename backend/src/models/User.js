@@ -38,6 +38,20 @@ const userSchema = new mongoose.Schema(
       },
       default: 'employee',
     },
+    dateOfBirth: {
+      type: Date,
+      default: null,
+    },
+    company: {
+      type: String,
+      trim: true,
+      maxlength: [100, 'Company name cannot exceed 100 characters'],
+      default: null,
+    },
+    isEmployed: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true, // Adds createdAt and updatedAt automatically

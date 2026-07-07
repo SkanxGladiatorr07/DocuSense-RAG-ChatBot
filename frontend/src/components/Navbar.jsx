@@ -145,13 +145,18 @@ const Navbar = () => {
                 <span className="material-symbols-outlined text-[20px]">logout</span>
                 Logout
               </button>
-              <div className="h-8 w-8 rounded-full bg-primary-fixed overflow-hidden border border-outline-variant flex items-center justify-center" title={user?.name || 'Profile'}>
+              <button 
+                onClick={() => navigate('/profile')}
+                className="h-8 w-8 rounded-full bg-primary-fixed overflow-hidden border border-outline-variant flex items-center justify-center hover:ring-2 hover:ring-primary/40 transition-all cursor-pointer" 
+                title={user?.name ? `${user.name} — View Profile` : 'View Profile'}
+                aria-label="Open profile"
+              >
                 {user?.name ? (
                   <span className="text-[12px] font-bold text-primary font-body-md uppercase">{user.name.slice(0, 2)}</span>
                 ) : (
-                  <img className="w-full h-full object-cover" alt="Profile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBYyXWsQCxCZ3bQwDue48HEUq9iUQuEoR4ewNXXkxv0T6p5wR9ZSDXGzmKP5SPO9p1YRdcnjlwYQagTFNtSp39Pjo5zXco6ZTVasKQy1OA8UQmauBt0ZLiLXe-5RvuhBFcf4FKu-sLTGJUCjhfwoOq8vtpse0d_NPpKcMFWo-53BBTFveIejNq3U7yYkZNBHJxNZD5bvOZLV_SznkPvzkLLCvgpRqyuErQtgWaUKc0R1Wzy3AbuyNKdIQ" />
+                  <span className="material-symbols-outlined text-[18px] text-primary">person</span>
                 )}
-              </div>
+              </button>
             </>
           ) : (
             <Link 

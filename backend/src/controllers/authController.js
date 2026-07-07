@@ -15,6 +15,9 @@ const sanitiseUser = (user) => ({
   name: user.name,
   email: user.email,
   role: user.role,
+  dateOfBirth: user.dateOfBirth,
+  company: user.company,
+  isEmployed: user.isEmployed,
   createdAt: user.createdAt,
   updatedAt: user.updatedAt,
 });
@@ -136,4 +139,64 @@ const getMe = (req, res) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-module.exports = { register, login, getMe };
+/**
+ * @desc    Update the authenticated user's profile
+ * @route   PATCH /api/v1/auth/profile
+ * @access  Private
+ */
+const updateProfile = async (req, res, next) => {
+  try {
+    const { dateOfBirth, company, isEmployed } = req.body;
+
+    // Build update object — only include fields that were actually sent
+    const updates = {};
+
+    if (dateOfBirth !== undefined) {
+      if (dateOfBirth === null || dateOfBirth === '') {
+        updates.dateOfBirth = null;
+      } else {
+        const dob = new Date(dateOfBirth);
+        if (isNaN(dob.getTime())) {
+          throw new ApiError(400, 'Invalid date of birth format');
+        }
+        if (dob > new Date()) {
+          throw new ApiError(400, 'Date of birth cannot be in the future');
+        }
+        updates.dateOfBirth = dob;
+      }
+    }
+
+    if (isEmployed !== undefined) {
+      updates.isEmployed = Boolean(isEmployed);
+    }
+
+    if (company !== undefined) {
+      updates.company = company?.trim() || null;
+    }
+
+    // Clear company if user marks themselves as not employed
+    if (updates.isEmployed === false) {
+      updates.company = null;
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user._id,
+      { $set: updates },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedUser) {
+      throw new ApiError(404, 'User not found');
+    }
+
+    return ApiResponse.success(res, 200, 'Profile updated successfully', {
+      user: sanitiseUser(updatedUser),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+module.exports = { register, login, getMe, updateProfile };
