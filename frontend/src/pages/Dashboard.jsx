@@ -927,7 +927,10 @@ const Dashboard = () => {
             
             {activeConversationId && (
               <div className="flex items-center gap-4">
-                <button className="flex items-center gap-1.5 text-secondary text-label-md font-medium hover:text-primary transition-colors">
+                <button 
+                  onClick={() => showToast('Export functionality has not been added yet.', 'error')}
+                  className="flex items-center gap-1.5 text-secondary text-label-md font-medium hover:text-primary transition-colors"
+                >
                   <span className="material-symbols-outlined text-[18px]">share</span>
                   Export
                 </button>
@@ -1113,10 +1116,10 @@ const Dashboard = () => {
           </div>
           
           {/* Input Panel */}
-          <div className="border-t border-outline-variant bg-white p-6 shrink-0 shadow-[0_-4px_24px_-12px_rgba(0,0,0,0.1)]">
+          <div className="border-t border-outline-variant bg-white py-3.5 px-6 shrink-0 shadow-[0_-4px_24px_-12px_rgba(0,0,0,0.1)]">
             <div className="max-w-4xl mx-auto">
               {insightsData && (
-                <div className="flex flex-col gap-2 mb-3 animate-fade-in text-left">
+                <div className="flex flex-col gap-1.5 mb-2 animate-fade-in text-left">
                   <div className="flex items-center justify-between text-[10px] font-bold text-outline uppercase tracking-wider">
                     <div className="flex items-center gap-1.5">
                       <span className="material-symbols-outlined text-[14px] text-primary">auto_awesome</span>
@@ -1131,18 +1134,18 @@ const Dashboard = () => {
                       <span className="material-symbols-outlined text-[11px]">open_in_new</span>
                     </button>
                   </div>
-                  <div className="flex flex-col gap-1.5 max-h-[120px] overflow-y-auto custom-scrollbar py-0.5">
-                    {/* Suggested questions from API — one per line, smaller */}
-                    {(insightsData.suggestedQuestions || []).slice(0, 3).map((q, i) => (
-                      <div key={i} className="flex">
-                        <button
-                          type="button"
-                          onClick={() => handleSuggestedQuestionClick(q)}
-                          className="px-3 py-1 bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 text-zinc-700 text-[12px] font-medium rounded-full transition-all active:scale-[0.98] text-left truncate max-w-full"
-                        >
-                          {q}
-                        </button>
-                      </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-[58px] overflow-y-auto custom-scrollbar py-0.5">
+                    {/* Suggested questions from API — two per line on desktop, smaller, scrollable */}
+                    {(insightsData.suggestedQuestions || []).slice(0, 8).map((q, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => handleSuggestedQuestionClick(q)}
+                        className="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 text-zinc-700 text-[11px] font-medium rounded-full transition-all active:scale-[0.98] text-left truncate w-full"
+                        title={q}
+                      >
+                        {q}
+                      </button>
                     ))}
                   </div>
                 </div>
