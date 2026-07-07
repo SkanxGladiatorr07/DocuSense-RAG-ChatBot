@@ -1,225 +1,168 @@
-# DocuSense — RAG ChatBot for Company Documents
+# DocuSense — AI-Powered Enterprise RAG ChatBot
 
 > **Ask questions. Get answers. From your own documents.**
 
-DocuSense is an intelligent, RAG-powered (Retrieval-Augmented Generation) chatbot that lets employees query internal company documents using natural language. Instead of searching through folders of PDFs, just ask a question and get a grounded, cited answer — instantly.
+DocuSense is an intelligent, high-performance RAG-powered (Retrieval-Augmented Generation) document assistant. It enables users to upload PDF, DOCX, and TXT documents, automatically index them into a vectorized database, and query their knowledge base in natural language. Every answer is grounded directly in the provided context, cited back to source files, and beautifully rendered in markdown.
 
 ---
 
-## Problem Statement
+## ✨ Features
 
-Companies accumulate enormous amounts of internal knowledge — policies, HR manuals, technical specs, onboarding guides, and SOPs — stored across disconnected files and folders. Employees waste time hunting for information, and tribal knowledge is lost when people leave.
+### 📂 Intelligent Ingestion Pipeline
+- **Multi-Format Extraction:** Parse PDFs, Word files (DOCX), and plain text files (TXT) seamlessly.
+- **Recursive Chunking:** Intelligently splits long documents into paragraph chunks to retain context.
+- **Vector Search:** Converts chunks into embeddings and indexes them in MongoDB for sub-second similarity searches.
 
-DocuSense solves this by turning your document library into a conversational knowledge base. Upload a file, ask a question, get an answer.
+### 🧠 Gemini & Groq LLM Adapters
+- **Gemini Developer API:** Leverages Google's `gemini-2.0-flash` for high-fidelity responses.
+- **Groq Cloud Integration:** Swap to LLaMA models at runtime by simply configuring your Groq API key.
+- **Token Optimization:** Elevated context windows (12 chunks) and 2048 maximum output tokens for rich, non-truncated answers.
+
+### 🔍 Grounded Answers & Citations
+- **Strict Hallucination Prevention:** The model is locked to answer ONLY from the uploaded files.
+- **Verifiable Source Citations:** Inline markers link every claim to a specific source file.
+- **Rich Markdown Formatting:** Renders headers, lists, code snippets, blockquotes, and tables natively.
+
+### 📝 AI Document Insights
+- **Automatic Summary:** Triggers immediately after a document completes indexing. Generates a short summary, detailed summary, key topics, keywords, and dates.
+- **Suggested Questions:** Automatically parses key themes and creates clickable suggested questions.
+
+### 💬 Active Workspace & Chat Management
+- **Inline Rename Option:** Edit conversation titles on the fly from the sidebar list or the chat workspace header.
+- **AI Auto-Naming:** Automatically reads the user's first query and generates a clean 3-4 word title.
+- **Chat Archive:** Archive older chats to keep your workspace clutter-free.
+
+### 🔒 User Profiles & Security
+- **Secure JWT Auth:** Complete user registration, login, and authorization flow.
+- **Profile Customization:** Save personal details like Date of Birth, Employment Status, and Company name.
+- **Email Masking Decryption:** Mask email IDs by default (e.g. `an*****@gmail.com`) with an interactive eye toggle to view.
 
 ---
 
-## Planned Features
-
-| Feature | Status |
-|---|---|
-| Express REST API | ✅ Complete |
-| MongoDB Integration | ✅ Complete |
-| React + Vite Frontend | ✅ Complete |
-| Document Upload (PDF, DOCX, TXT) | 🔜 Planned |
-| Text Chunking & Embedding Pipeline | 🔜 Planned |
-| Vector Store Integration (Pinecone / ChromaDB) | 🔜 Planned |
-| OpenAI GPT Chat Completion | 🔜 Planned |
-| Streaming Responses | 🔜 Planned |
-| Source Citation in Answers | 🔜 Planned |
-| Chat History (per session) | 🔜 Planned |
-| Authentication (JWT) | 🔜 Planned |
-| Multi-user / Role-based Access | 🔜 Planned |
-
----
-
-## Tech Stack
+## 🛠️ Tech Stack
 
 ### Backend
-| Layer | Technology |
-|---|---|
-| Runtime | Node.js v18+ |
-| Framework | Express.js |
-| Database | MongoDB + Mongoose |
-| AI Orchestration | LangChain.js *(planned)* |
-| Embeddings | OpenAI `text-embedding-ada-002` *(planned)* |
-| Vector Store | Pinecone / ChromaDB *(planned)* |
-| LLM | OpenAI GPT-4o *(planned)* |
+- **Runtime:** Node.js v18+
+- **Framework:** Express.js
+- **Database:** MongoDB + Mongoose
+- **Parsers:** `pdf-parse` (PDF), `mammoth` (Word/DOCX)
+- **AI REST APIs:** Google Gemini API, Groq REST Client
 
 ### Frontend
-| Layer | Technology |
-|---|---|
-| Framework | React 18 |
-| Build Tool | Vite |
-| Routing | React Router DOM v7 |
-| HTTP Client | Axios |
-| Styling | Vanilla CSS + CSS Modules |
+- **Framework:** React 18
+- **Build Tool:** Vite
+- **Routing:** React Router v7
+- **HTTP Client:** Axios
+- **Markdown rendering:** `react-markdown`
+- **Iconography:** Google Material Symbols (Rounded)
 
 ---
 
-## Folder Structure
+## 📁 Folder Structure
 
 ```
 RAG ChatBot/
-├── backend/                    # Express API server
+├── backend/                    # Express API Server
 │   ├── src/
-│   │   ├── config/             # DB connection, env config
-│   │   ├── controllers/        # Route handler functions
-│   │   ├── middleware/         # Error handler, 404, auth (future)
-│   │   ├── models/             # Mongoose schemas
-│   │   ├── routes/             # Express routers
-│   │   ├── services/           # Business logic, AI pipeline
-│   │   ├── utils/              # ApiError, ApiResponse, logger
-│   │   ├── app.js              # Express app factory
-│   │   └── server.js           # HTTP server entry point
-│   ├── .env.example
+│   │   ├── config/             # Environment & DB configs
+│   │   ├── controllers/        # Express request controllers
+│   │   ├── middleware/         # Uploads, rate-limiters, auth, errors
+│   │   ├── models/             # Mongoose DB Schemas
+│   │   ├── routes/             # API Routers
+│   │   ├── services/           # LLM services, Embeddings, chunking, caching
+│   │   ├── utils/              # Response wrappers, custom errors, loggers
+│   │   ├── app.js              # Application assembly
+│   │   └── server.js           # Server startup script
 │   └── package.json
 │
-├── frontend/                   # React + Vite SPA
+├── frontend/                   # React + Vite Client
 │   ├── src/
-│   │   ├── assets/             # Static assets
-│   │   ├── components/         # Reusable UI components (Navbar, etc.)
-│   │   ├── hooks/              # Custom React hooks (useApi, etc.)
+│   │   ├── components/         # Navigation, route protectors, loaders
+│   │   ├── context/            # AuthContext states & methods
 │   │   ├── layouts/            # Shared page shells (MainLayout)
-│   │   ├── pages/              # Page-level components (Home, Dashboard)
-│   │   ├── routes/             # React Router config
-│   │   ├── services/           # Axios API service modules
-│   │   ├── App.jsx
-│   │   ├── main.jsx
-│   │   └── index.css
-│   ├── .env.example
+│   │   ├── pages/              # Home, Dashboard, Profile, Register, Login
+│   │   ├── routes/             # App routing registry
+│   │   └── index.css           # Global typography & layout tokens
 │   └── package.json
-│
-└── docs/
-    └── architecture.md         # System architecture deep-dive
 ```
 
 ---
 
-## Development Roadmap
-
-### Phase 1 — Foundation ✅
-- [x] Express server with health check
-- [x] MongoDB connection (Mongoose)
-- [x] Global error handling middleware
-- [x] React + Vite frontend scaffold
-- [x] React Router with MainLayout
-- [x] Navbar, Home page, Dashboard placeholder
-
-### Phase 2 — Document Pipeline 🔜
-- [ ] File upload endpoint (Multer)
-- [ ] PDF / DOCX text extraction (pdf-parse, mammoth)
-- [ ] Recursive text chunking
-- [ ] OpenAI embedding generation
-- [ ] Vector upsert to Pinecone / ChromaDB
-- [ ] Document model in MongoDB
-
-### Phase 3 — Chat & RAG 🔜
-- [ ] Chat session model
-- [ ] `/api/v1/chat` POST endpoint
-- [ ] Retrieval: embed query → vector similarity search
-- [ ] Augmentation: inject retrieved chunks into prompt
-- [ ] LLM call with LangChain
-- [ ] Streaming response via Server-Sent Events
-- [ ] Source citation in response payload
-
-### Phase 4 — Auth & Polish 🔜
-- [ ] JWT authentication (register / login)
-- [ ] Protected routes on frontend
-- [ ] Chat history persistence
-- [ ] Document management UI
-- [ ] Deployment (Railway / Render + Vercel)
-
----
-
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
-- **Node.js** v18 or higher
-- **MongoDB** running locally (`mongod`) or a MongoDB Atlas URI
-- **Git**
+- **Node.js** (v18.0.0 or higher)
+- **MongoDB** (Local instance or MongoDB Atlas Connection URI)
 
-### 1. Clone the repository
+---
+
+### Step 1: Clone and Install
 
 ```bash
-git clone https://github.com/your-username/docusense-rag-chatbot.git
-cd docusense-rag-chatbot
+# Clone the repository
+git clone https://github.com/SkanxGladiatorr07/DocuSense-RAG-ChatBot.git
+cd DocuSense-RAG-ChatBot
+
+# Install backend dependencies
+cd backend
+npm install
+
+# Install frontend dependencies
+cd ../frontend
+npm install --legacy-peer-deps
 ```
 
-### 2. Setup the Backend
+---
 
+### Step 2: Configure Environment Variables
+
+Create a `.env` file in the `backend/` directory by copying the template:
+
+```bash
+cd ../backend
+cp .env.example .env
+```
+
+Open `backend/.env` and configure:
+
+```ini
+PORT=5000
+NODE_ENV=development
+MONGO_URI=mongodb://localhost:27017/docusense
+CORS_ORIGIN=http://localhost:3000
+JWT_SECRET=your_jwt_secret_key_at_least_32_characters
+GEMINI_API_KEY=your_google_gemini_api_key
+GROQ_API_KEY=your_groq_api_key_optional
+```
+
+---
+
+### Step 3: Run the Application
+
+#### Start the Backend Server:
 ```bash
 cd backend
-
-# Install dependencies
-npm install
-
-# Copy the environment template and fill in values
-cp .env.example .env
-
-# Start the development server
 npm run dev
 ```
+The server will boot on `http://localhost:5000`. You can test health at `http://localhost:5000/api/v1/health`.
 
-The API will start at **http://localhost:5000**  
-Health check: `GET http://localhost:5000/` → `{ "success": true, "message": "API Running" }`
-
-### 3. Setup the Frontend
-
+#### Start the Frontend Client:
+In a new terminal window:
 ```bash
-cd ../frontend
-
-# Install dependencies
-npm install
-
-# Copy the environment template
-cp .env.example .env
-
-# Start the Vite dev server
+cd frontend
 npm run dev
 ```
-
-The app will open at **http://localhost:3000**
-
-### 4. Verify both are running
-
-| Service | URL |
-|---|---|
-| React Frontend | http://localhost:3000 |
-| Express API | http://localhost:5000 |
-| API Health Check | http://localhost:5000/api/v1/ |
+The client will start at `http://localhost:3000`.
 
 ---
 
-## Environment Variables
-
-### Backend (`backend/.env`)
-
-| Variable | Description | Example |
-|---|---|---|
-| `PORT` | Express server port | `5000` |
-| `NODE_ENV` | Runtime environment | `development` |
-| `MONGO_URI` | MongoDB connection string | `mongodb://localhost:27017/docusense` |
-| `CORS_ORIGIN` | Allowed frontend origin(s) | `http://localhost:3000` |
-| `OPENAI_API_KEY` | OpenAI API key *(Phase 3)* | `sk-...` |
-| `PINECONE_API_KEY` | Pinecone API key *(Phase 3)* | `...` |
-
-### Frontend (`frontend/.env`)
-
-| Variable | Description | Example |
-|---|---|---|
-| `VITE_API_BASE_URL` | Backend API base path | `/api/v1` |
+## 🔒 Security & Rate Limiting
+DocuSense implements custom Express middleware to protect endpoints:
+- **Authentication rate-limiting:** 20 requests per 15 minutes.
+- **Chat rate-limiting:** 30 requests per minute.
+- **Upload rate-limiting:** 10 requests per 15 minutes.
 
 ---
 
-## Contributing
-
-Pull requests are welcome. Please open an issue first to discuss what you would like to change.
-
----
-
-## License
-
-[MIT](LICENSE)
-
-# Made As a Project
+## 📄 License
+Distributed under the MIT License. See `LICENSE` for more information.
