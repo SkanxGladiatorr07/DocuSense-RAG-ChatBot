@@ -45,7 +45,7 @@ const DEFAULT_GEMINI_MODEL = 'gemini-2.0-flash';
  * Maximum output tokens for a single generation call.
  * Keeps responses focused for RAG use-cases; callers can override via options.
  */
-const DEFAULT_MAX_OUTPUT_TOKENS = 1024;
+const DEFAULT_MAX_OUTPUT_TOKENS = 2048;
 
 /** Temperature for generation (0 = deterministic, 1 = creative). */
 const DEFAULT_TEMPERATURE = 0.2;

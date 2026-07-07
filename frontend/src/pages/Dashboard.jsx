@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
+import ReactMarkdown from 'react-markdown'
 
 const Dashboard = () => {
   const { user, token } = useAuth()
@@ -1039,7 +1040,29 @@ const Dashboard = () => {
                               <span className="text-outline text-body-md">Thinking...</span>
                             </div>
                           ) : (
-                            <p className="text-body-lg text-on-surface leading-relaxed whitespace-pre-wrap">{msg.answer}</p>
+                            <div className="prose prose-zinc max-w-none text-body-md leading-relaxed">
+                              <ReactMarkdown
+                                components={{
+                                  h1: ({node, ...props}) => <h1 className="text-title-lg font-bold text-on-surface mt-4 mb-2" {...props} />,
+                                  h2: ({node, ...props}) => <h2 className="text-title-md font-bold text-on-surface mt-3 mb-1.5" {...props} />,
+                                  h3: ({node, ...props}) => <h3 className="text-title-sm font-semibold text-on-surface mt-2 mb-1" {...props} />,
+                                  p: ({node, ...props}) => <p className="text-body-lg text-on-surface leading-relaxed mb-2 last:mb-0" {...props} />,
+                                  strong: ({node, ...props}) => <strong className="font-semibold text-on-surface" {...props} />,
+                                  ul: ({node, ...props}) => <ul className="list-disc pl-5 space-y-1 my-2" {...props} />,
+                                  ol: ({node, ...props}) => <ol className="list-decimal pl-5 space-y-1 my-2" {...props} />,
+                                  li: ({node, ...props}) => <li className="text-body-lg text-on-surface" {...props} />,
+                                  table: ({node, ...props}) => <div className="overflow-x-auto my-3"><table className="min-w-full text-body-sm border border-outline-variant rounded-lg" {...props} /></div>,
+                                  th: ({node, ...props}) => <th className="px-3 py-2 bg-surface-container text-left font-semibold text-on-surface border-b border-outline-variant" {...props} />,
+                                  td: ({node, ...props}) => <td className="px-3 py-2 border-b border-outline-variant/40 text-on-surface" {...props} />,
+                                  code: ({node, inline, ...props}) => inline
+                                    ? <code className="px-1.5 py-0.5 bg-zinc-100 text-primary rounded font-mono text-[13px]" {...props} />
+                                    : <pre className="bg-zinc-900 text-zinc-100 p-4 rounded-xl overflow-x-auto my-3 font-mono text-[13px]"><code {...props} /></pre>,
+                                  blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-primary/40 pl-4 italic text-secondary my-2" {...props} />,
+                                }}
+                              >
+                                {msg.answer}
+                              </ReactMarkdown>
+                            </div>
                           )}
                         </div>
                         

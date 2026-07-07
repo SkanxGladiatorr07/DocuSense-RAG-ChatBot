@@ -29,7 +29,7 @@ const logger   = require('../utils/logger');
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 /** Maximum number of chunks to include in a single prompt. */
-const MAX_CONTEXT_CHUNKS = 10;
+const MAX_CONTEXT_CHUNKS = 12;
 
 /** Default template name. */
 const DEFAULT_TEMPLATE = 'standard';
@@ -105,6 +105,11 @@ provided documents."
 4. Be clear, concise, and factual. Do not fabricate details.
 5. If the question is ambiguous, answer for the most likely interpretation \
 based on the context.
+6. FORMAT your response using clean Markdown:
+   - Use **bold** for key terms, names, or important values.
+   - Use bullet points or numbered lists where information is listed or enumerated.
+   - Use headings (## or ###) only if the answer has multiple distinct sections.
+   - Keep prose flowing and readable — do not over-structure short answers.
 
 CONTEXT:
 ${context}
@@ -138,7 +143,7 @@ SHORT ANSWER:`,
   detailed: (question, context) => `\
 You are DocuSense, an expert document analyst. Provide a thorough, \
 well-structured answer to the question below, drawing EXCLUSIVELY from the \
-context provided. Use bullet points or numbered lists where appropriate.
+context provided.
 
 Rules:
 - Only use information from the CONTEXT section.
@@ -146,6 +151,11 @@ Rules:
 - If the context is insufficient, state clearly: "The provided documents do \
 not contain enough information to answer this question fully."
 - Do not speculate or add information from outside the context.
+- FORMAT your response in clean Markdown:
+  * Use **bold** for key terms, values, dates, and names.
+  * Use bullet points (- item) or numbered lists (1. item) wherever information is enumerated.
+  * Use ## or ### headings to break up multi-section answers.
+  * Keep tables (| col | col |) when comparing multiple items side by side.
 
 CONTEXT:
 ${context}
