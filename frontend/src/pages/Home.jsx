@@ -1,6 +1,7 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 const Home = () => {
+  const navigate = useNavigate()
   return (
     <>
       <main className="pt-16">
@@ -233,10 +234,16 @@ const Home = () => {
               Deploy DocuSense in your infrastructure or use our managed cloud. Start your 14-day free trial today.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-6">
-              <button className="px-10 py-4 bg-primary rounded-xl font-title-md text-title-md hover:bg-on-primary-fixed-variant transition-all shadow-xl shadow-primary/20">
+              <button 
+                onClick={() => navigate('/dashboard')}
+                className="px-10 py-4 bg-primary rounded-xl font-title-md text-title-md hover:bg-on-primary-fixed-variant transition-all shadow-xl shadow-primary/20 cursor-pointer"
+              >
                 Get Started Free
               </button>
-              <button className="px-10 py-4 border border-zinc-700 rounded-xl font-title-md text-title-md hover:bg-zinc-800 transition-all">
+              <button 
+                onClick={() => navigate('/dashboard?view=help')}
+                className="px-10 py-4 border border-zinc-700 rounded-xl font-title-md text-title-md hover:bg-zinc-800 transition-all cursor-pointer"
+              >
                 Schedule Demo
               </button>
             </div>

@@ -128,9 +128,9 @@ const Profile = () => {
               <div className="w-24 h-24 -mt-12 rounded-2xl bg-gradient-to-br from-primary to-[#6366f1] shadow-lg border-4 border-white flex items-center justify-center shrink-0">
                 <span className="text-[32px] font-black text-white tracking-tight">{getInitials()}</span>
               </div>
-              <div className="mb-2">
-                <h1 className="text-[22px] font-black text-on-surface leading-tight">{user?.name || 'Your Name'}</h1>
-                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold mt-1 ${
+              <div className="flex flex-col gap-2 mb-1">
+                <h1 className="text-[22px] font-black text-on-surface leading-none">{user?.name || 'Your Name'}</h1>
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold w-fit ${
                   user?.role === 'admin'
                     ? 'bg-amber-100 text-amber-700'
                     : 'bg-primary-fixed text-primary'
@@ -155,10 +155,10 @@ const Profile = () => {
                   <span className="text-[12px] text-secondary font-medium">{age} years old</span>
                 </div>
               )}
-              {isEmployed && company && (
+              {user?.isEmployed && user?.company && (
                 <div className="flex items-center gap-2 bg-surface-container-low px-3 py-1.5 rounded-xl border border-outline-variant/30">
                   <span className="material-symbols-outlined text-emerald-600 text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>business</span>
-                  <span className="text-[12px] text-secondary font-medium">{company}</span>
+                  <span className="text-[12px] text-secondary font-medium">{user.company}</span>
                 </div>
               )}
             </div>
